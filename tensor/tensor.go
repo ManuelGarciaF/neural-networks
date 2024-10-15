@@ -1,7 +1,9 @@
 package tensor
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/ManuelGarciaF/neural-networks/assert"
 )
@@ -55,12 +57,12 @@ func Scalar(v float64) *Tensor {
 	return t
 }
 
-func RowVector(data []float64) *Tensor {
+func RowVector(data ...float64) *Tensor {
 	assert.GreaterThan(len(data), 0, "A vector can't have size 0")
 	return WithData([]int{1, len(data)}, data)
 }
 
-func ColumnVector(data []float64) *Tensor {
+func ColumnVector(data ...float64) *Tensor {
 	assert.GreaterThan(len(data), 0, "A vector can't have size 0")
 	return WithData([]int{len(data), 1}, data)
 }
@@ -142,8 +144,8 @@ func Add(t1, t2 *Tensor) *Tensor {
 
 // Applies a function in place to each element of the tensor
 func (t *Tensor) Apply(f func(v float64) float64) {
-	for _, v := range t.Data {
-		v = f(v)
+	for i, v := range t.Data {
+		t.Data[i] = f(v)
 	}
 }
 
@@ -160,17 +162,52 @@ func (t *Tensor) AddElem(v float64) {
 }
 
 func (t *Tensor) getDataIndex(indices []int) int {
-	assert.GreaterThanOrEqual(len(indices), t.Dims(), "Invalid number of indices")
-	// Check that if there are extra indices, they are 0
-	for i := t.Dims(); i < len(indices); i++ {
-		assert.Equal(indices[i], 0, "Index out of bounds")
-	}
-	indices = indices[:t.Dims()] // Remove the extra 0s
-
 	dataIndex := 0
-	for dim, currIndex := range indices {
-		assert.True(currIndex >= 0 && currIndex < t.Dim(dim), "Index out of bounds")
-		dataIndex += currIndex * t.strides[dim]
+	for dim := 0; dim < t.Dims(); dim++ {
+		index := 0
+		if dim < len(indices) {
+			index = indices[dim]
+		}
+		assert.True(index >= 0 && index < t.Dim(dim), "Index out of bounds")
+
+		dataIndex += index * t.strides[dim]
 	}
+
+	// Just in case, check there are no extra non-0 indices
+	for i := t.Dims(); i < len(indices); i++ {
+		assert.Equal(0, indices[i], "Index out of bounds")
+	}
+
 	return dataIndex
+}
+
+// Really horrible, don't look
+func (t *Tensor) PrintMatrix(prefix string) {
+	fmt.Print(prefix, " ")
+	for row := 0; row < t.Dim(0); row++ {
+		if row > 0{
+			fmt.Print(strings.Repeat(" ", len(prefix)+1))
+		}
+		if t.Dim(0) == 1 {
+			fmt.Print("[")
+		} else if row == 0 {
+			fmt.Print("┌")
+		} else if row == t.Dim(0)-1 {
+			fmt.Print("└")
+		} else {
+			fmt.Print("│")
+		}
+		for col := 0; col < t.Dim(1); col++ {
+			fmt.Printf("%8.4f ", t.At(row, col))
+		}
+		if t.Dim(0) == 1 {
+			fmt.Println("]")
+		} else if row == 0 {
+			fmt.Println("┐")
+		} else if row == t.Dim(0)-1 {
+			fmt.Println("┘")
+		} else {
+			fmt.Println("│")
+		}
+	}
 }

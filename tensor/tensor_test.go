@@ -65,7 +65,6 @@ func TestSetAndAtPanic(t *testing.T) {
 		name    string
 		indices []int
 	}{
-		{"Too Few Indices", []int{1}},
 		{"Too Many Indices", []int{1, 2, 3}},
 		{"Out of Bounds", []int{2, 3}},
 	}
@@ -112,8 +111,8 @@ func TestMatMul(t *testing.T) {
 		},
 		{
 			name:  "1x2 * 2x1",
-			left:  RowVector([]float64{2, 3}),
-			right: ColumnVector([]float64{4, 5}),
+			left:  RowVector(2, 3),
+			right: ColumnVector(4, 5),
 			want:  Scalar(23),
 		},
 	}
@@ -162,13 +161,13 @@ func TestEq(t *testing.T) {
 		{
 			name: "scalar == 1 element rowVector",
 			t1:   Scalar(1),
-			t2:   RowVector([]float64{1}),
+			t2:   RowVector(1),
 			want: true,
 		},
 		{
 			name: "scalar == 1 element colVector",
 			t1:   Scalar(1),
-			t2:   ColumnVector([]float64{1}),
+			t2:   ColumnVector(1),
 			want: true,
 		},
 		{
@@ -179,8 +178,8 @@ func TestEq(t *testing.T) {
 		},
 		{
 			name: "2 element row != 2 element col",
-			t1:   RowVector([]float64{1,2}),
-			t2:   ColumnVector([]float64{1,2}),
+			t1:   RowVector(1,2),
+			t2:   ColumnVector(1,2),
 			want: false,
 		},
 		{

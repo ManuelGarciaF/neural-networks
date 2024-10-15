@@ -1,4 +1,4 @@
-package layer
+package nn
 
 import (
 	t "github.com/ManuelGarciaF/neural-networks/tensor"
