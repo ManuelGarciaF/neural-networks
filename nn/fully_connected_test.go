@@ -58,7 +58,7 @@ func TestFullyConnectedLayer_Forward(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			l := &FullyConnectedLayer{
 				Weights: tt.fields.weights,
-				Bias:    tt.fields.bias,
+				Biases:  tt.fields.bias,
 				actF:    ReLU{},
 			}
 			if got := l.Forward(tt.args.in); !ts.Eq(got, tt.want) {

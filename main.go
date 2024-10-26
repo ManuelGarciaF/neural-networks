@@ -61,7 +61,7 @@ func xor() {
 	fmt.Println()
 	n2 := nn.NewMLP([]int{2, 2, 1}, nn.Sigmoid{})
 	fmt.Println("Initial parameters:")
-	printNN(n)
+	printNN(n2)
 	n2.Train(data, 100*1000, 0.1)
 	testNN(n2, data)
 }
@@ -86,8 +86,8 @@ func naiveTraining(arch []int, data []nn.TrainingSample, learningRate float64, e
 			for i := range l.Weights.Data {
 				l2.Weights.Data[i] += (rand.Float64() - 0.5) * learningRate
 			}
-			for i := range l.Bias.Data {
-				l2.Bias.Data[i] += (rand.Float64() - 0.5) * learningRate
+			for i := range l.Biases.Data {
+				l2.Biases.Data[i] += (rand.Float64() - 0.5) * learningRate
 			}
 		}
 		newLoss := n2.AverageLoss(data)
@@ -124,6 +124,6 @@ func printNN(n *nn.NeuralNetwork) {
 			continue
 		}
 		l.Weights.PrintMatrix(strconv.Itoa(i) + ") Weights")
-		l.Bias.PrintMatrix(strconv.Itoa(i) + ") Bias")
+		l.Biases.PrintMatrix(strconv.Itoa(i) + ") Bias")
 	}
 }

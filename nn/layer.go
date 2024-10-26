@@ -7,13 +7,14 @@ import (
 type Layer interface {
 	Forward(in *t.Tensor) *t.Tensor
 
-	// Returns the gradient for the layer and accumulates gradients for parameters.
-	Backward(nextLayerGradient *t.Tensor) *t.Tensor
+	// Returns the gradients for the current and previous layers.
+	ComputeGradients(nextLayerGradient *t.Tensor) (LayerGrad, *t.Tensor)
 
-	// Updates de parameters based on accumulated gradients, uses numberSamples to
-	// average the gradients before applying.
-	// TODO check if this is necessary with a small enough learningRate
-	UpdateParams(numberSamples int, learningRate float64)
+	// Updates parameters based on gradients.
+	UpdateParams(grads []LayerGrad, learningRate float64)
+}
 
-	ClearGradients()
+// Stores the gradient for a layer with respect to its parameters.
+type LayerGrad interface {
+	// TODO Maybe move some logic here
 }

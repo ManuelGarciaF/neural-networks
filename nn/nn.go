@@ -52,29 +52,79 @@ func (n *NeuralNetwork) BackpropStep(samples []TrainingSample, learningRate floa
 		return
 	}
 
-	for _, l := range n.Layers {
-		l.ClearGradients()
+	/* FIXME have to remove activations from the layer to avoid race conditions when executing concurrently
+		// Each layer will have one gradient per sample. It's easier to have a channel per layer.
+		gradientChannels := make([]chan LayerGrad, len(n.Layers))
+		for i := range gradientChannels {
+			gradientChannels[i] = make(chan LayerGrad, len(samples))
+		}
+
+		var wg sync.WaitGroup
+		// TODO stochastic gradient descent (divide in batches)
+		for _, sample := range samples {
+			// Create goroutines for each sample
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				a := n.Forward(sample.In) // Forward to cache activations
+				// Initial gradient for output layer is
+				// dL/da_k = 2*(a_k - y_k) for MSE loss
+				aGrad := t.ScalarMult(t.Sub(a, sample.Out), 2)
+
+				for l := len(n.Layers) - 1; l >= 0; l-- {
+					// Get the gradients from layer l
+					var paramsGrad LayerGrad
+					paramsGrad, aGrad = n.Layers[l].Backward(aGrad)
+
+					// Send the parameters gradient to its layer's channel
+					gradientChannels[l] <- paramsGrad
+				}
+			}()
+		}
+		wg.Wait()
+		// Close channels
+		for _, c := range gradientChannels {
+			close(c)
+		}
+
+		// Update params of each layer
+		for layerIndex, layer := range n.Layers {
+			// Collect gradients for this layer
+			grads := make([]LayerGrad, 0, len(samples))
+			for g := range gradientChannels[layerIndex] {
+				grads = append(grads, g)
+			}
+
+			layer.UpdateParams(grads, learningRate)
+		}
+	*/
+
+	// Non concurrent version
+	gradientLists := make([][]LayerGrad, len(n.Layers))
+	for l := range gradientLists {
+		gradientLists[l] = make([]LayerGrad, 0, len(samples))
 	}
-
-	// TODO add stochastic gradient descent, also add concurrency for each sample in the same pass
-	for _, s := range samples {
-
-		a := n.Forward(s.In)
+	for _, sample := range samples {
+		a := n.Forward(sample.In) // Forward to cache activations
 		// Initial gradient for output layer is
 		// dL/da_k = 2*(a_k - y_k) for MSE loss
-		a_grad := t.ScalarMult(t.Sub(a, s.Out), 2)
+		aGrad := t.ScalarMult(t.Sub(a, sample.Out), 2)
 
 		for l := len(n.Layers) - 1; l >= 0; l-- {
-			a_grad = n.Layers[l].Backward(a_grad)
+			// Get the gradients from layer l
+			var paramsGrad LayerGrad
+			paramsGrad, aGrad = n.Layers[l].Backward(aGrad)
+			gradientLists[l] = append(gradientLists[l], paramsGrad)
 		}
 	}
-
-	for _, l := range n.Layers {
-		l.UpdateParams(len(samples), learningRate)
+	// Apply updates
+	for i, layer := range n.Layers {
+		layer.UpdateParams(gradientLists[i], learningRate)
 	}
 }
 
-func (n *NeuralNetwork) Train(data []TrainingSample, epochs int, learningRate float64)  {
+func (n *NeuralNetwork) Train(data []TrainingSample, epochs int, learningRate float64) {
 	currLoss := n.AverageLoss(data)
 
 	for i := 0; i < epochs; i++ {
