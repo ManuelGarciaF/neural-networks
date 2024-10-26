@@ -27,8 +27,8 @@ func TestNew(t *testing.T) {
 			if len(tensor.Data) != tt.wantSize {
 				t.Errorf("len(New(%v).Data) = %v, want %v", tt.shape, len(tensor.Data), tt.wantSize)
 			}
-			if !reflect.DeepEqual(tensor.shape, tt.shape) {
-				t.Errorf("New(%v).Shape = %v, want %v", tt.shape, tensor.shape, tt.shape)
+			if !reflect.DeepEqual(tensor.Shape, tt.shape) {
+				t.Errorf("New(%v).Shape = %v, want %v", tt.shape, tensor.Shape, tt.shape)
 			}
 		})
 	}

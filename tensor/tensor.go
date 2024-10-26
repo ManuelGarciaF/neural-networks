@@ -2,6 +2,7 @@ package tensor
 
 import (
 	"fmt"
+	"math"
 	"slices"
 	"strings"
 
@@ -10,7 +11,7 @@ import (
 
 type Tensor struct {
 	Data    []float64
-	shape   []int
+	Shape   []int
 	strides []int
 }
 
@@ -18,8 +19,8 @@ func New(shape ...int) *Tensor {
 	if len(shape) == 0 {
 		return &Tensor{
 			Data:    make([]float64, 1),
-			shape:   []int{},
-			strides: []int{},
+			Shape:   make([]int, 0),
+			strides: []int{1},
 		}
 	}
 
@@ -39,7 +40,7 @@ func New(shape ...int) *Tensor {
 
 	return &Tensor{
 		Data:    make([]float64, size),
-		shape:   shape,
+		Shape:   shape,
 		strides: strides,
 	}
 }
@@ -52,8 +53,8 @@ func WithData(shape []int, data []float64) *Tensor {
 }
 
 func Scalar(v float64) *Tensor {
-	t := New(1)
-	t.Set(v, 0)
+	t := New()
+	t.Set(v)
 	return t
 }
 
@@ -68,7 +69,7 @@ func ColumnVector(data ...float64) *Tensor {
 }
 
 func (t *Tensor) Dims() int {
-	return len(t.shape)
+	return len(t.Shape)
 }
 
 func (t *Tensor) Dim(i int) int {
@@ -77,7 +78,7 @@ func (t *Tensor) Dim(i int) int {
 	if i >= t.Dims() {
 		return 1
 	}
-	return t.shape[i]
+	return t.Shape[i]
 }
 
 func (t *Tensor) Set(v float64, indices ...int) {
@@ -86,6 +87,25 @@ func (t *Tensor) Set(v float64, indices ...int) {
 
 func (t *Tensor) At(indices ...int) float64 {
 	return t.Data[t.getDataIndex(indices)]
+}
+
+func (t *Tensor) Rows() int {
+	return t.Dim(0)
+}
+
+func (t *Tensor) Cols() int {
+	return t.Dim(1)
+}
+
+func (t *Tensor) Copy() *Tensor {
+	data := make([]float64, len(t.Data))
+	copy(data, t.Data)
+	shape := make([]int, len(t.Shape))
+	copy(shape, t.Shape)
+	strides := make([]int, len(t.strides))
+	copy(strides, t.strides)
+
+	return &Tensor{Data: data, Shape: shape, strides: strides}
 }
 
 func EqDims(t1, t2 *Tensor) bool {
@@ -104,23 +124,20 @@ func Eq(t1, t2 *Tensor) bool {
 	return EqDims(t1, t2) && slices.Equal(t1.Data, t2.Data)
 }
 
+// Returns a new tensor
 func MatMul(left, right *Tensor) *Tensor {
 	assert.LessThanOrEqual(left.Dims(), 2, "Element is not a matrix")
 	assert.LessThanOrEqual(right.Dims(), 2, "Element is not a matrix")
+	assert.Equal(left.Cols(), right.Rows(), "Matrix dimensions do not match")
 
-	leftRows, leftCols := left.Dim(0), left.Dim(1)
-	rightRows, rightCols := right.Dim(0), right.Dim(1)
-
-	assert.Equal(leftCols, rightRows, "Matrix dimensions do not match")
-
-	outRows := leftRows
-	outCols := rightCols
-	sumLen := leftCols
+	outRows := left.Rows()
+	outCols := right.Cols()
+	sumLen := left.Cols()
 
 	out := New(outRows, outCols)
 	for row := 0; row < outRows; row++ {
 		for col := 0; col < outCols; col++ {
-			val := float64(0)
+			val := 0.0
 			for i := 0; i < sumLen; i++ {
 				val += left.At(row, i) * right.At(i, col)
 			}
@@ -131,8 +148,8 @@ func MatMul(left, right *Tensor) *Tensor {
 	return out
 }
 
-// The first argument is modified
-func Add(t1, t2 *Tensor) *Tensor {
+// The receiver is modified
+func (t1 *Tensor) AddInPlace(t2 *Tensor) *Tensor {
 	assert.True(EqDims(t1, t2), "Tensors do not have the same shape")
 
 	for i := range t1.Data {
@@ -142,22 +159,141 @@ func Add(t1, t2 *Tensor) *Tensor {
 	return t1
 }
 
-// Applies a function in place to each element of the tensor
-func (t *Tensor) Apply(f func(v float64) float64) {
-	for i, v := range t.Data {
-		t.Data[i] = f(v)
+func Add(t1, t2 *Tensor) *Tensor {
+	assert.True(EqDims(t1, t2), "Tensors do not have the same shape")
+
+	new := t1.Copy()
+	for i := range new.Data {
+		new.Data[i] += t2.Data[i]
 	}
+
+	return new
 }
 
-func (t *Tensor) ScalarMult(s float64) {
-	for _, v := range t.Data {
-		v *= s
+// The receiver is modified
+func (t1 *Tensor) SubInPlace(t2 *Tensor) *Tensor {
+	assert.True(EqDims(t1, t2), "Tensors do not have the same shape")
+
+	for i := range t1.Data {
+		t1.Data[i] -= t2.Data[i]
 	}
+
+	return t1
 }
 
-func (t *Tensor) AddElem(v float64) {
+func Sub(t1, t2 *Tensor) *Tensor {
+	assert.True(EqDims(t1, t2), "Tensors do not have the same shape")
+
+	new := t1.Copy()
+	for i := range new.Data {
+		new.Data[i] -= t2.Data[i]
+	}
+
+	return new
+}
+
+// The receiver is modified
+func ElementMult(t1, t2 *Tensor) *Tensor {
+	assert.True(EqDims(t1, t2), "Tensors do not have the same shape")
+
+	new := t1.Copy()
+	for i := range new.Data {
+		new.Data[i] *= t2.Data[i]
+	}
+
+	return new
+}
+
+// Applies a function to each element of the tensor.
+func Apply(t *Tensor, f func(v float64) float64) *Tensor {
+	a := t.Copy()
+	for i, v := range a.Data {
+		a.Data[i] = f(v)
+	}
+	return a
+}
+
+func AddToElems(t *Tensor, v float64) *Tensor {
+	out := t.Copy()
+	for i := range out.Data {
+		out.Data[i] += v
+	}
+	return out
+}
+
+func ScalarMult(t *Tensor, v float64) *Tensor {
+	out := t.Copy()
+	for i := range out.Data {
+		out.Data[i] *= v
+	}
+	return out
+}
+
+func (t *Tensor) ScaleInPlace(v float64) *Tensor {
 	for i := range t.Data {
-		t.Data[i] += v
+		t.Data[i] *= v
+	}
+	return t
+}
+
+func MatTranspose(t *Tensor) *Tensor {
+	assert.LessThanOrEqual(t.Dims(), 2, "Element is not a matrix")
+
+	new := New(t.Cols(), t.Rows())
+	for r := 0; r < t.Rows(); r++ {
+		for c := 0; c < t.Cols(); c++ {
+			new.Set(t.At(r, c), c, r)
+		}
+	}
+
+	return new
+}
+
+func (t *Tensor) MatrixNormInf() float64 {
+	assert.LessThanOrEqual(t.Dims(), 2, "Element is not a matrix")
+
+	// Max row sum
+	max := 0.0
+	for r := 0; r < t.Rows(); r++ {
+		sum := 0.0
+		for c := 0; c < t.Cols(); c++ {
+			sum += math.Abs(t.At(r, c))
+		}
+		if sum > max {
+			max = sum
+		}
+	}
+	return max
+}
+
+// Really horrible, don't look
+func (t *Tensor) PrintMatrix(prefix string) {
+	fmt.Print(prefix, " ")
+	for row := 0; row < t.Rows(); row++ {
+		if row > 0 {
+			fmt.Print(strings.Repeat(" ", len(prefix)+1))
+		}
+		if t.Rows() == 1 {
+			fmt.Print("[")
+		} else if row == 0 {
+			fmt.Print("┌")
+		} else if row == t.Rows()-1 {
+			fmt.Print("└")
+		} else {
+			fmt.Print("│")
+		}
+		for col := 0; col < t.Dim(1); col++ {
+			fmt.Printf("%8.4f ", t.At(row, col))
+		}
+		if t.Rows() == 1 {
+			fmt.Println("]")
+		} else if row == 0 {
+			fmt.Println("┐")
+		} else if row == t.Rows()-1 {
+			fmt.Println("┘")
+		} else {
+			fmt.Println("│")
+		}
 	}
 }
 
@@ -179,35 +315,4 @@ func (t *Tensor) getDataIndex(indices []int) int {
 	}
 
 	return dataIndex
-}
-
-// Really horrible, don't look
-func (t *Tensor) PrintMatrix(prefix string) {
-	fmt.Print(prefix, " ")
-	for row := 0; row < t.Dim(0); row++ {
-		if row > 0{
-			fmt.Print(strings.Repeat(" ", len(prefix)+1))
-		}
-		if t.Dim(0) == 1 {
-			fmt.Print("[")
-		} else if row == 0 {
-			fmt.Print("┌")
-		} else if row == t.Dim(0)-1 {
-			fmt.Print("└")
-		} else {
-			fmt.Print("│")
-		}
-		for col := 0; col < t.Dim(1); col++ {
-			fmt.Printf("%8.4f ", t.At(row, col))
-		}
-		if t.Dim(0) == 1 {
-			fmt.Println("]")
-		} else if row == 0 {
-			fmt.Println("┐")
-		} else if row == t.Dim(0)-1 {
-			fmt.Println("┘")
-		} else {
-			fmt.Println("│")
-		}
-	}
 }
