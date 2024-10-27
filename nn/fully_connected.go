@@ -12,26 +12,32 @@ type FullyConnectedLayer struct {
 	Weights *t.Tensor // MxN array
 	Biases  *t.Tensor // N length vector
 	actF    ActivationFunction
-
-	lastInput *t.Tensor // Stored for backpropagation.
-	lastZ     *t.Tensor // Z is the partial activation = Wx + b, stored for backpropagation.
-
 }
+
+var _ Layer = &FullyConnectedLayer{}
 
 type FullyConnectedLayerGradient struct {
 	Weights *t.Tensor
 	Biases  *t.Tensor
 }
 
-var _ Layer = &FullyConnectedLayer{}
+var _ LayerGrad = FullyConnectedLayerGradient{}
+
+func (FullyConnectedLayerGradient) layerGrad() {}
+
+type FullyConnectedLayerState struct {
+	Input *t.Tensor
+	Z     *t.Tensor // Z is the partial activation = Wx + b, stored for backpropagation.
+}
+var _ LayerState = FullyConnectedLayerState{}
+
+func (FullyConnectedLayerState) layerState() {}
 
 func NewFullyConnectedLayer(inSize, outSize int, actF ActivationFunction) *FullyConnectedLayer {
 	l := &FullyConnectedLayer{
-		Weights:   t.New(outSize, inSize),
-		Biases:    t.New(outSize, 1),
-		actF:      actF,
-		lastInput: nil,
-		lastZ:     nil,
+		Weights: t.New(outSize, inSize),
+		Biases:  t.New(outSize, 1),
+		actF:    actF,
 	}
 
 	// Best for sigmoid
@@ -51,19 +57,22 @@ func (l *FullyConnectedLayer) initializeXavier(in, out int) {
 	}
 }
 
-func (l *FullyConnectedLayer) Forward(in *t.Tensor) *t.Tensor {
+func (l *FullyConnectedLayer) Forward(in *t.Tensor) (*t.Tensor, LayerState) {
 	assert.Equal(in.Cols(), 1, "Input must be a column vector")
 	assert.Equal(l.Weights.Cols(), in.Rows(), "Input must be the right size")
 
-	l.lastInput = in
-
 	z := t.Add(t.MatMul(l.Weights, in), l.Biases)
-	l.lastZ = z
 
-	return t.Apply(z, l.actF.Apply)
+	// Cached values
+	state := FullyConnectedLayerState{
+		Input: in,
+		Z:     z,
+	}
+
+	return t.Apply(z, l.actF.Apply), state
 }
 
-func (l *FullyConnectedLayer) Backward(nextLayerGrad *t.Tensor) (LayerGrad, *t.Tensor) {
+func (l *FullyConnectedLayer) ComputeGradients(s LayerState, nextLayerGrad *t.Tensor) (LayerGrad, *t.Tensor) {
 	/* The formulas for each element of the gradient are:
 
 	   dL/da^(prev)_k = Sum_j(dL/da_j * actF'(z_j) * w_jk)
@@ -76,13 +85,15 @@ func (l *FullyConnectedLayer) Backward(nextLayerGrad *t.Tensor) (LayerGrad, *t.T
 
 	   With it we can calculate the gradients with matrix operations.
 	*/
+	state, ok := s.(FullyConnectedLayerState)
+	assert.True(ok, "State must match layer type")
 
-	actFDerivatives := t.Apply(l.lastZ, l.actF.Derivative)
+	actFDerivatives := t.Apply(state.Z, l.actF.Derivative)
 	delta := t.ElementMult(nextLayerGrad, actFDerivatives)
 
-	parameterGrad := &FullyConnectedLayerGradient{
+	parameterGrad := FullyConnectedLayerGradient{
 		// Weight gradient turns out to be just delta * input^T.
-		Weights: t.MatMul(delta, t.MatTranspose(l.lastInput)),
+		Weights: t.MatMul(delta, t.MatTranspose(state.Input)),
 		// Similarly, the bias gradient is just delta.
 		Biases: delta,
 	}
@@ -99,7 +110,7 @@ func (l *FullyConnectedLayer) UpdateParams(grads []LayerGrad, learningRate float
 	wGradAvg := t.New(l.Weights.Shape...) // Empty tensors with the correct shape
 	bGradAvg := t.New(l.Biases.Shape...)
 	for _, individualGrad := range grads {
-		individualGrad, ok := individualGrad.(*FullyConnectedLayerGradient)
+		individualGrad, ok := individualGrad.(FullyConnectedLayerGradient)
 		assert.True(ok, "Gradient must match layer type")
 
 		wGradAvg.AddInPlace(individualGrad.Weights)

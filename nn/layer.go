@@ -5,10 +5,11 @@ import (
 )
 
 type Layer interface {
-	Forward(in *t.Tensor) *t.Tensor
+	// Returns the finished activation and the layer's cached state to be used during backpropagation.
+	Forward(in *t.Tensor) (*t.Tensor, LayerState)
 
 	// Returns the gradients for the current and previous layers.
-	ComputeGradients(nextLayerGradient *t.Tensor) (LayerGrad, *t.Tensor)
+	ComputeGradients(state LayerState, nextLayerGradient *t.Tensor) (LayerGrad, *t.Tensor)
 
 	// Updates parameters based on gradients.
 	UpdateParams(grads []LayerGrad, learningRate float64)
@@ -16,5 +17,10 @@ type Layer interface {
 
 // Stores the gradient for a layer with respect to its parameters.
 type LayerGrad interface {
-	// TODO Maybe move some logic here
+	layerGrad() // Marker method
+}
+
+// Each layer type needs different values cached during its forwarding for backpropagation
+type LayerState interface {
+	layerState() // Marker method
 }

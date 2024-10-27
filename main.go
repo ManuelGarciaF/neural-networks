@@ -62,7 +62,7 @@ func xor() {
 	n2 := nn.NewMLP([]int{2, 2, 1}, nn.Sigmoid{})
 	fmt.Println("Initial parameters:")
 	printNN(n2)
-	n2.Train(data, 100*1000, 0.1)
+	n2.Train(data, 500*1000, 0.1, false)
 	testNN(n2, data)
 }
 
@@ -112,7 +112,7 @@ func testNN(n *nn.NeuralNetwork, data []nn.TrainingSample) {
 	fmt.Println()
 	fmt.Println("Sample results:")
 	for _, sample := range data {
-		out := n.Forward(sample.In)
+		out, _ := n.Forward(sample.In)
 		fmt.Printf("\tin: %+v, out: %v, expected %v\n", sample.In.Data, out.Data, sample.Out.Data)
 	}
 }
