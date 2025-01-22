@@ -54,7 +54,7 @@ func (s Sigmoid) Derivative(v float64) float64 {
 	return sv * (1 - sv)
 }
 
-// Used for the last layer
+// NoActF Used for the last layer
 type NoActF struct{}
 
 var _ ActivationFunction = NoActF{}

@@ -73,7 +73,11 @@ func (l *FullyConnectedLayer) Forward(in *t.Tensor) (*t.Tensor, LayerState) {
 	return t.Apply(z, l.actF.Apply), state
 }
 
-func (l *FullyConnectedLayer) ComputeGradients(s LayerState, nextLayerGrad *t.Tensor) (LayerGrad, *t.Tensor) {
+func (l *FullyConnectedLayer) ComputeGradients(
+	s LayerState,
+	nextLayerGrad *t.Tensor,
+	gradClipping float64,
+) (LayerGrad, *t.Tensor) {
 	/* The formulas for each element of the gradient are:
 
 	   dL/da^(prev)_k = Sum_j(dL/da_j * actF'(z_j) * w_jk)
@@ -93,10 +97,9 @@ func (l *FullyConnectedLayer) ComputeGradients(s LayerState, nextLayerGrad *t.Te
 	delta := t.ElementMult(nextLayerGrad, actFDerivatives)
 
 	// Clip delta to avoid infinite gradients.
-	MAX_NORM := 1.0
 	norm := delta.ColVectorNorm2()
-	if norm > MAX_NORM {
-		delta.ScaleInPlace(MAX_NORM / norm)
+	if norm > gradClipping {
+		delta.ScaleInPlace(gradClipping / norm)
 	}
 
 	parameterGrad := FullyConnectedLayerGradient{
@@ -136,10 +139,6 @@ func (l *FullyConnectedLayer) UpdateParams(grads []LayerGrad, learningRate float
 	// Modify parameters according to gradients and learning rate
 	l.Weights.SubInPlace(t.ScalarMult(wGradAvg, learningRate))
 	l.Biases.SubInPlace(t.ScalarMult(bGradAvg, learningRate))
-}
-
-func (l *FullyConnectedLayer) UpdateParamsMomentum(grads []LayerGrad, learningRate float64, prevGrads []LayerGrad, momentumConstant float64) {
-	panic("not implemented")
 }
 
 func isInf(v float64) bool {

@@ -1,8 +1,8 @@
 package nn_test
 
 import (
-	"testing"
 	"math"
+	"testing"
 
 	"github.com/ManuelGarciaF/neural-networks/nn"
 	t "github.com/ManuelGarciaF/neural-networks/tensor"
@@ -10,18 +10,18 @@ import (
 
 func init() {
 	// Disable training logs during tests
-	nn.LOG_PROGRESS = false
+	nn.LogProgress = false
 }
 
 func TestNetworks(te *testing.T) {
 	tests := []struct {
-		name       string
-		arch       []int
-		outputAct  bool
-		data       []nn.TrainingSample
-		epochs     int
-		learnRate  float64
-		threshold  float64
+		name      string
+		arch      []int
+		outputAct bool
+		data      []nn.TrainingSample
+		epochs    int
+		learnRate float64
+		threshold float64
 	}{
 		{
 			name:      "AND",
@@ -69,7 +69,7 @@ func TestNetworks(te *testing.T) {
 
 	for _, tt := range tests {
 		te.Run(tt.name, func(te *testing.T) {
-			network := nn.NewMLP(tt.arch, nn.Sigmoid{}, tt.outputAct)
+			network := nn.NewMLP(tt.arch, nn.Sigmoid{}, tt.outputAct, 1.0)
 			network.Train(tt.data, tt.epochs, tt.learnRate, false)
 
 			finalLoss := network.AverageLoss(tt.data)
