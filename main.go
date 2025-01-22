@@ -27,7 +27,7 @@ func adder() {
 		{In: t.ColumnVector(-1, 1), Out: t.Scalar(0)},
 	}
 	// n := naiveTraining([]int{2, 1}, data, 0.01, 20000)
-	n := nn.NewMLP([]int{2, 1}, nn.ReLU{}, false, 1.0)
+	n := nn.NewMLP([]int{2, 1}, nn.Sigmoid{}, false, 1.0)
 	n.Train(data, 10*1000, 0.1, false)
 	testNN(n, data)
 }
@@ -41,7 +41,7 @@ func and() {
 		{In: t.ColumnVector(1, 1), Out: t.Scalar(1)},
 	}
 	// n := naiveTraining([]int{2, 1}, data, 0.01, 200000)
-	n := nn.NewMLP([]int{2, 1}, nn.ReLU{}, true, 1.0)
+	n := nn.NewMLP([]int{2, 1}, nn.Sigmoid{}, true, 1.0)
 	n.Train(data, 10*1000, 1.0, false)
 
 	testNN(n, data)
@@ -56,7 +56,7 @@ func xor() {
 		{In: t.ColumnVector(1, 1), Out: t.Scalar(0)},
 	}
 
-	n2 := nn.NewMLP([]int{2, 2, 1}, nn.ReLU{}, true, 1.0)
+	n2 := nn.NewMLP([]int{2, 2, 1}, nn.Sigmoid{}, true, 1.0)
 	fmt.Println("Initial parameters:")
 	printNN(n2)
 	n2.Train(data, 100*1000, 1.0, false)

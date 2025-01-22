@@ -42,16 +42,17 @@ func NewFullyConnectedLayer(inSize, outSize int, actF ActivationFunction) *Fully
 	}
 
 	// Initialize weights and biases
-	l.initializeXavier(inSize, outSize)
+	l.initializeHe(inSize, outSize)
 
 	return l
 }
 
-func (l *FullyConnectedLayer) initializeXavier(in, out int) {
-	limit := math.Sqrt(6.0 / float64(in+out))
+// He initialization
+func (l *FullyConnectedLayer) initializeHe(in, out int) {
+	dev := math.Sqrt(2 / float64(in))
 
 	for i := range l.Weights.Data {
-		l.Weights.Data[i] = (rand.Float64() - 0.5) * 2.0 * limit // Random number between [-limit, limit]
+		l.Weights.Data[i] = dev * rand.NormFloat64()
 	}
 	for i := range l.Biases.Data {
 		l.Biases.Data[i] = 0.0
