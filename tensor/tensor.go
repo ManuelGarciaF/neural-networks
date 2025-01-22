@@ -124,7 +124,6 @@ func Eq(t1, t2 *Tensor) bool {
 	return EqDims(t1, t2) && slices.Equal(t1.Data, t2.Data)
 }
 
-// Returns a new tensor
 func MatMul(left, right *Tensor) *Tensor {
 	assert.LessThanOrEqual(left.Dims(), 2, "Element is not a matrix")
 	assert.LessThanOrEqual(right.Dims(), 2, "Element is not a matrix")
@@ -192,7 +191,6 @@ func Sub(t1, t2 *Tensor) *Tensor {
 	return new
 }
 
-// The receiver is modified
 func ElementMult(t1, t2 *Tensor) *Tensor {
 	assert.True(EqDims(t1, t2), "Tensors do not have the same shape")
 
@@ -236,6 +234,26 @@ func (t *Tensor) ScaleInPlace(v float64) *Tensor {
 	return t
 }
 
+func (t *Tensor) ColVectorNorm1() float64 {
+	assert.Equal(t.Cols(), 1, "Not a column vector")
+
+	sum := 0.0
+	for _, v := range t.Data {
+		sum += math.Abs(v)
+	}
+	return sum
+}
+
+func (t *Tensor) ColVectorNorm2() float64 {
+	assert.Equal(t.Cols(), 1, "Not a column vector")
+
+	sum := 0.0
+	for _, v := range t.Data {
+		sum += v * v
+	}
+	return math.Sqrt(sum)
+}
+
 func MatTranspose(t *Tensor) *Tensor {
 	assert.LessThanOrEqual(t.Dims(), 2, "Element is not a matrix")
 
@@ -264,6 +282,24 @@ func (t *Tensor) MatrixNormInf() float64 {
 		}
 	}
 	return max
+}
+
+func (t *Tensor) Contains(v float64) bool {
+	for _, e := range t.Data {
+		if e == v {
+			return true
+		}
+	}
+	return false
+}
+
+func (t *Tensor) Any(f func(v float64) bool) bool {
+	for _, v := range t.Data {
+		if f(v) {
+			return true
+		}
+	}
+	return false
 }
 
 // Really horrible, don't look

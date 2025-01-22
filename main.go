@@ -13,8 +13,8 @@ func main() {
 	// Disable asserts for speed
 	// assert.ASSERT_ENABLE = false
 
-	// adder()
-	// and()
+	adder()
+	and()
 	xor()
 }
 
@@ -26,7 +26,9 @@ func adder() {
 		{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
 		{In: t.ColumnVector(-1, 1), Out: t.Scalar(0)},
 	}
-	n := naiveTraining([]int{2, 1}, data, 0.01, 20000)
+	// n := naiveTraining([]int{2, 1}, data, 0.01, 20000)
+	n := nn.NewMLP([]int{2, 1}, nn.ReLU{}, false)
+	n.Train(data, 10*1000, 0.1, false)
 	testNN(n, data)
 }
 
@@ -38,7 +40,10 @@ func and() {
 		{In: t.ColumnVector(1, 0), Out: t.Scalar(0)},
 		{In: t.ColumnVector(1, 1), Out: t.Scalar(1)},
 	}
-	n := naiveTraining([]int{2, 1}, data, 0.01, 20000)
+	// n := naiveTraining([]int{2, 1}, data, 0.01, 200000)
+	n := nn.NewMLP([]int{2, 1}, nn.ReLU{}, true)
+	n.Train(data, 10*1000, 1.0, false)
+
 	testNN(n, data)
 }
 
@@ -50,24 +55,16 @@ func xor() {
 		{In: t.ColumnVector(1, 0), Out: t.Scalar(1)},
 		{In: t.ColumnVector(1, 1), Out: t.Scalar(0)},
 	}
-	fmt.Println()
-	fmt.Println("-- NAIVE TRAINING: --------------------------------------------------")
-	fmt.Println()
-	n := naiveTraining([]int{2, 2, 1}, data, 0.01, 1000000)
-	testNN(n, data)
 
-	fmt.Println()
-	fmt.Println("-- GRADIENT DESCENT:-------------------------------------------------")
-	fmt.Println()
-	n2 := nn.NewMLP([]int{2, 2, 1}, nn.Sigmoid{})
+	n2 := nn.NewMLP([]int{2, 2, 1}, nn.ReLU{}, true)
 	fmt.Println("Initial parameters:")
 	printNN(n2)
-	n2.Train(data, 500*1000, 0.1, false)
+	n2.Train(data, 100*1000, 1.0, false)
 	testNN(n2, data)
 }
 
-func naiveTraining(arch []int, data []nn.TrainingSample, learningRate float64, epochs int) *nn.NeuralNetwork {
-	n := nn.NewMLP(arch, nn.Sigmoid{})
+func naiveTraining(arch []int, outputNeedsActivation bool, data []nn.TrainingSample, learningRate float64, epochs int) *nn.NeuralNetwork {
+	n := nn.NewMLP(arch, nn.Sigmoid{}, outputNeedsActivation)
 
 	fmt.Println("Initial parameters:")
 	printNN(n)
@@ -76,7 +73,7 @@ func naiveTraining(arch []int, data []nn.TrainingSample, learningRate float64, e
 	loss := n.AverageLoss(data)
 	for i := 0; i < epochs; i++ {
 		// Juggle the parameters a bit
-		n2 := nn.NewMLP(arch, nn.Sigmoid{}) // New network to store updated values
+		n2 := nn.NewMLP(arch, nn.Sigmoid{}, outputNeedsActivation) // New network to store updated values
 		for lnum, l := range n.Layers {
 			l, ok := l.(*nn.FullyConnectedLayer)
 			l2, _ := n2.Layers[lnum].(*nn.FullyConnectedLayer)

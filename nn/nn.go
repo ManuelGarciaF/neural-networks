@@ -8,7 +8,7 @@ import (
 	t "github.com/ManuelGarciaF/neural-networks/tensor"
 )
 
-const LOG_PROGRESS = true
+var LOG_PROGRESS = true
 
 type NeuralNetwork struct {
 	Layers []Layer
@@ -17,12 +17,18 @@ type NeuralNetwork struct {
 type TrainingSample struct{ In, Out *t.Tensor } // Both column vectors
 
 // Arch is a list of layer sizes, including input and output
-func NewMLP(arch []int, actF ActivationFunction) *NeuralNetwork {
+func NewMLP(arch []int, actF ActivationFunction, outputNeedsActivation bool) *NeuralNetwork {
 	layers := make([]Layer, 0, len(arch)-1)
 
-	for i := 0; i < len(arch)-1; i++ {
+	for i := 0; i < len(arch)-2; i++ {
 		layers = append(layers, NewFullyConnectedLayer(arch[i], arch[i+1], actF))
 	}
+
+	var outputActF ActivationFunction = NoActF{}
+	if outputNeedsActivation {
+		outputActF = actF
+	}
+	layers = append(layers, NewFullyConnectedLayer(arch[len(arch)-2], arch[len(arch)-1], outputActF))
 
 	return &NeuralNetwork{Layers: layers}
 }
@@ -107,6 +113,7 @@ func (n *NeuralNetwork) BackpropStepSingleThreaded(samples []TrainingSample, lea
 	if learningRate <= 0 {
 		return
 	}
+	// A gradient per sample per layer
 	gradientLists := make([][]LayerGrad, len(n.Layers))
 	for l := range gradientLists {
 		gradientLists[l] = make([]LayerGrad, 0, len(samples))
@@ -131,23 +138,14 @@ func (n *NeuralNetwork) BackpropStepSingleThreaded(samples []TrainingSample, lea
 }
 
 func (n *NeuralNetwork) Train(data []TrainingSample, epochs int, learningRate float64, concurrent bool) {
-	currLoss := n.AverageLoss(data)
-
 	for i := 0; i < epochs; i++ {
 		if concurrent {
 			n.BackpropStepConcurrent(data, learningRate)
 		} else {
 			n.BackpropStepSingleThreaded(data, learningRate)
 		}
-
-		newLoss := n.AverageLoss(data)
-		if newLoss > currLoss {
-			learningRate *= 0.95 // Reduce learning rate when loss increases (we "skipped" over the minimum)
-		}
-		currLoss = newLoss
-
 		if LOG_PROGRESS && (epochs < 10 || i%(epochs/10) == 0) {
-			fmt.Printf("iter:%7d - Loss: %7.5f\n", i, currLoss)
+			fmt.Printf("iter:%7d - Loss: %7.5f\n", i, n.AverageLoss(data))
 		}
 
 	}

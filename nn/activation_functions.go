@@ -1,6 +1,8 @@
 package nn
 
-import "math"
+import (
+	"math"
+)
 
 type ActivationFunction interface {
 	Apply(v float64) float64
@@ -47,7 +49,20 @@ func (Sigmoid) Apply(v float64) float64 {
 	return 1.0 / (1.0 + math.Exp(-v))
 }
 
-func (Sigmoid) Derivative(v float64) float64 {
-	sx := 1.0 / (1.0 + math.Exp(-v))
-	return sx * (1 - sx)
+func (s Sigmoid) Derivative(v float64) float64 {
+	sv := s.Apply(v)
+	return sv * (1 - sv)
+}
+
+// Used for the last layer
+type NoActF struct{}
+
+var _ ActivationFunction = NoActF{}
+
+func (NoActF) Apply(v float64) float64 {
+	return v
+}
+
+func (NoActF) Derivative(v float64) float64 {
+	return 1
 }
