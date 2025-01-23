@@ -15,7 +15,7 @@ type NeuralNetwork struct {
 	GradientClippingLimit float64
 }
 
-type TrainingSample struct{ In, Out *t.Tensor } // Both column vectors
+type Sample struct{ In, Out *t.Tensor } // Both column vectors
 
 // Arch is a list of layer sizes, including input and output
 func NewMLP(
@@ -49,7 +49,7 @@ func (n *NeuralNetwork) Forward(input *t.Tensor) (*t.Tensor, []LayerState) {
 	return activations[len(activations)-1], states
 }
 
-func (n *NeuralNetwork) AverageLoss(samples []TrainingSample) float64 {
+func (n *NeuralNetwork) AverageLoss(samples []Sample) float64 {
 	// Mean squared error
 	sum := 0.0
 	for _, s := range samples {
@@ -61,7 +61,7 @@ func (n *NeuralNetwork) AverageLoss(samples []TrainingSample) float64 {
 	return sum / float64(len(samples))
 }
 
-func (n *NeuralNetwork) BackpropStepConcurrent(samples []TrainingSample, learningRate float64) {
+func (n *NeuralNetwork) BackpropStepConcurrent(samples []Sample, learningRate float64) {
 	if learningRate <= 0 {
 		return
 	}
@@ -114,7 +114,7 @@ func (n *NeuralNetwork) BackpropStepConcurrent(samples []TrainingSample, learnin
 	}
 }
 
-func (n *NeuralNetwork) BackpropStepSingleThreaded(samples []TrainingSample, learningRate float64) {
+func (n *NeuralNetwork) BackpropStepSingleThreaded(samples []Sample, learningRate float64) {
 	if learningRate <= 0 {
 		return
 	}
@@ -142,7 +142,7 @@ func (n *NeuralNetwork) BackpropStepSingleThreaded(samples []TrainingSample, lea
 	}
 }
 
-func (n *NeuralNetwork) Train(data []TrainingSample, epochs int, learningRate float64, concurrent bool) {
+func (n *NeuralNetwork) Train(data []Sample, epochs int, learningRate float64, concurrent bool) {
 	for i := 0; i < epochs; i++ {
 		if concurrent {
 			n.BackpropStepConcurrent(data, learningRate)

@@ -22,3 +22,5 @@ go.work.sum
 .env
 neural-networks
 .idea/
+*.idx3-ubyte
+*.idx1-ubyte

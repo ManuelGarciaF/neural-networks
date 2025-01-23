@@ -52,3 +52,11 @@ func LessThanOrEqual[T ~int | ~float64 | ~float32](a, b T, msg string) {
 		panic(fmt.Sprintf("Assertion failed: %s (%v > %v)", msg, a, b))
 	}
 }
+
+// Must asserts that the err value is not nil
+func Must[T any](t T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return t
+}

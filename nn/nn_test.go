@@ -18,7 +18,7 @@ func TestNetworks(te *testing.T) {
 		name      string
 		arch      []int
 		outputAct bool
-		data      []nn.TrainingSample
+		data      []nn.Sample
 		epochs    int
 		learnRate float64
 		threshold float64
@@ -30,7 +30,7 @@ func TestNetworks(te *testing.T) {
 			learnRate: 1.0,
 			epochs:    1000,
 			threshold: 0.1,
-			data: []nn.TrainingSample{
+			data: []nn.Sample{
 				{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
 				{In: t.ColumnVector(0, 1), Out: t.Scalar(0)},
 				{In: t.ColumnVector(1, 0), Out: t.Scalar(0)},
@@ -44,7 +44,7 @@ func TestNetworks(te *testing.T) {
 			learnRate: 1.0,
 			epochs:    30000,
 			threshold: 0.1,
-			data: []nn.TrainingSample{
+			data: []nn.Sample{
 				{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
 				{In: t.ColumnVector(0, 1), Out: t.Scalar(1)},
 				{In: t.ColumnVector(1, 0), Out: t.Scalar(1)},
@@ -58,7 +58,7 @@ func TestNetworks(te *testing.T) {
 			learnRate: 0.1,
 			epochs:    10000,
 			threshold: 0.5,
-			data: []nn.TrainingSample{
+			data: []nn.Sample{
 				{In: t.ColumnVector(1, 1), Out: t.Scalar(2)},
 				{In: t.ColumnVector(2, 5), Out: t.Scalar(7)},
 				{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},

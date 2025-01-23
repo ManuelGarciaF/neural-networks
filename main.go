@@ -20,7 +20,7 @@ func main() {
 
 func adder() {
 	fmt.Println("Adder:")
-	data := []nn.TrainingSample{
+	data := []nn.Sample{
 		{In: t.ColumnVector(1, 1), Out: t.Scalar(2)},
 		{In: t.ColumnVector(2, 5), Out: t.Scalar(7)},
 		{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
@@ -34,7 +34,7 @@ func adder() {
 
 func and() {
 	fmt.Println("AND:")
-	data := []nn.TrainingSample{
+	data := []nn.Sample{
 		{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
 		{In: t.ColumnVector(0, 1), Out: t.Scalar(0)},
 		{In: t.ColumnVector(1, 0), Out: t.Scalar(0)},
@@ -49,21 +49,19 @@ func and() {
 
 func xor() {
 	fmt.Println("XOR:")
-	data := []nn.TrainingSample{
+	data := []nn.Sample{
 		{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
 		{In: t.ColumnVector(0, 1), Out: t.Scalar(1)},
 		{In: t.ColumnVector(1, 0), Out: t.Scalar(1)},
 		{In: t.ColumnVector(1, 1), Out: t.Scalar(0)},
 	}
 
-	n2 := nn.NewMLP([]int{2, 2, 1}, nn.Sigmoid{}, true, 1.0)
-	fmt.Println("Initial parameters:")
-	printNN(n2)
-	n2.Train(data, 100*1000, 1.0, false)
-	testNN(n2, data)
+	n := nn.NewMLP([]int{2, 2, 1}, nn.Sigmoid{}, true, 1.0)
+	n.Train(data, 100*1000, 1.0, false)
+	testNN(n, data)
 }
 
-func naiveTraining(arch []int, outputNeedsActivation bool, data []nn.TrainingSample, learningRate float64, epochs int) *nn.NeuralNetwork {
+func naiveTraining(arch []int, outputNeedsActivation bool, data []nn.Sample, learningRate float64, epochs int) *nn.NeuralNetwork {
 	n := nn.NewMLP(arch, nn.Sigmoid{}, outputNeedsActivation, 1.0)
 
 	fmt.Println("Initial parameters:")
@@ -98,7 +96,7 @@ func naiveTraining(arch []int, outputNeedsActivation bool, data []nn.TrainingSam
 	return n
 }
 
-func testNN(n *nn.NeuralNetwork, data []nn.TrainingSample) {
+func testNN(n *nn.NeuralNetwork, data []nn.Sample) {
 	fmt.Println("----------------------------")
 	fmt.Println("Final loss:", n.AverageLoss(data))
 
