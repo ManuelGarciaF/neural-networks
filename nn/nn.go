@@ -3,12 +3,12 @@ package nn
 import (
 	"fmt"
 	"math"
+	"math/rand"
+	"runtime"
 	"sync"
 
 	t "github.com/ManuelGarciaF/neural-networks/tensor"
 )
-
-var LogProgress = true
 
 type NeuralNetwork struct {
 	Layers                []Layer
@@ -61,56 +61,12 @@ func (n *NeuralNetwork) AverageLoss(samples []Sample) float64 {
 	return sum / float64(len(samples))
 }
 
-func (n *NeuralNetwork) BackpropStepConcurrent(samples []Sample, learningRate float64) {
-	if learningRate <= 0 {
-		return
-	}
-
-	// Each layer will have one gradient per sample. It's easier to have a channel per layer.
-	gradientChannels := make([]chan LayerGrad, len(n.Layers))
-	for i := range gradientChannels {
-		gradientChannels[i] = make(chan LayerGrad, len(samples))
-	}
-
-	var wg sync.WaitGroup
-	// TODO stochastic gradient descent (divide in batches)
-	for _, sample := range samples {
-		// Create goroutines for each sample
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			a, states := n.Forward(sample.In) // Forward to cache activations
-
-			// Initial gradient for output layer is
-			// dL/da_k = 2*(a_k - y_k) for MSE loss
-			aGrad := t.ScalarMult(t.Sub(a, sample.Out), 2)
-
-			for l := len(n.Layers) - 1; l >= 0; l-- {
-				// Get the gradients from layer l
-				var paramsGrad LayerGrad
-				paramsGrad, aGrad = n.Layers[l].ComputeGradients(states[l], aGrad, n.GradientClippingLimit)
-
-				// Send the parameters gradient to its layer's channel
-				gradientChannels[l] <- paramsGrad
-			}
-		}()
-	}
-	wg.Wait()
-	// Close channels
-	for _, c := range gradientChannels {
-		close(c)
-	}
-
-	// Update params of each layer
-	for layerIndex, layer := range n.Layers {
-		// Collect gradients for this layer
-		grads := make([]LayerGrad, 0, len(samples))
-		for g := range gradientChannels[layerIndex] {
-			grads = append(grads, g)
+func (n *NeuralNetwork) TrainSingleThreaded(data []Sample, epochs int, learningRate float64, verbose bool) {
+	for i := 0; i < epochs; i++ {
+		n.BackpropStepSingleThreaded(data, learningRate)
+		if verbose && (epochs <= 50 || i%(epochs/50) == 0) {
+			fmt.Printf("iter:%7d - Loss: %7.5f\n", i, n.AverageLoss(data))
 		}
-
-		layer.UpdateParams(grads, learningRate)
 	}
 }
 
@@ -118,40 +74,103 @@ func (n *NeuralNetwork) BackpropStepSingleThreaded(samples []Sample, learningRat
 	if learningRate <= 0 {
 		return
 	}
-	// A gradient per sample per layer
-	gradientLists := make([][]LayerGrad, len(n.Layers))
-	for l := range gradientLists {
-		gradientLists[l] = make([]LayerGrad, 0, len(samples))
-	}
-	for _, sample := range samples {
-		a, states := n.Forward(sample.In)
-		// Initial gradient for output layer is
-		// dL/da_k = 2*(a_k - y_k) for MSE loss
-		aGrad := t.ScalarMult(t.Sub(a, sample.Out), 2)
+	// A gradient per layer
+	gradientAccums := make([]LayerGrad, len(n.Layers))
 
-		for l := len(n.Layers) - 1; l >= 0; l-- {
-			// Get the gradients from layer l
-			var paramsGrad LayerGrad
-			paramsGrad, aGrad = n.Layers[l].ComputeGradients(states[l], aGrad, n.GradientClippingLimit)
-			gradientLists[l] = append(gradientLists[l], paramsGrad)
+	for _, sample := range samples {
+		activation, states := n.Forward(sample.In)
+
+		lossGrad := computeLossGradient(activation, sample.Out)
+
+		grads := n.Backward(states, lossGrad)
+
+		for layer := range gradientAccums {
+			if gradientAccums[layer] == nil {
+				gradientAccums[layer] = grads[layer]
+			} else {
+				gradientAccums[layer].Add(grads[layer])
+			}
 		}
 	}
 	// Apply updates
 	for i, layer := range n.Layers {
-		layer.UpdateParams(gradientLists[i], learningRate)
+		// Normalize gradient
+		gradientAccums[i].Scale(1.0 / float64(len(samples)))
+
+		layer.UpdateParams(gradientAccums[i], learningRate)
 	}
 }
 
-func (n *NeuralNetwork) Train(data []Sample, epochs int, learningRate float64, concurrent bool) {
-	for i := 0; i < epochs; i++ {
-		if concurrent {
-			n.BackpropStepConcurrent(data, learningRate)
-		} else {
-			n.BackpropStepSingleThreaded(data, learningRate)
-		}
-		if LogProgress && (epochs < 10 || i%(epochs/10) == 0) {
-			fmt.Printf("iter:%7d - Loss: %7.5f\n", i, n.AverageLoss(data))
-		}
-
+func (n *NeuralNetwork) TrainConcurrent(
+	samples []Sample,
+	epochs int,
+	learningRate float64,
+	batchSize int,
+	maxGoroutines int,
+	verbose bool,
+) {
+	if maxGoroutines == 0 {
+		maxGoroutines = runtime.NumCPU()
 	}
+
+	// Shuffle data to avoid biases
+	rand.Shuffle(len(samples), func(i, j int) {
+		samples[i], samples[j] = samples[j], samples[i]
+	})
+
+	for epoch := 0; epoch < epochs; epoch++ {
+		// gradientChan := make(chan []LayerGrad, maxGoroutines)
+		var wg sync.WaitGroup
+
+		// Process in batches
+		for batchStart := 0; batchStart < len(samples); batchStart += batchSize {
+			batchEnd := min(batchStart+batchSize, len(samples))
+			batchSamples := samples[batchStart:batchEnd]
+
+			wg.Add(1)
+			go func(batch []Sample) {
+				defer wg.Done()
+
+				// Accumulate gradients of the batch.
+				batchGrads := make([]LayerGrad, len(n.Layers))
+				for _, sample := range batch {
+					activation, states := n.Forward(sample.In)
+					lossGradient := computeLossGradient(activation, sample.Out)
+					gradients := n.Backward(states, lossGradient)
+
+					for layer := range batchGrads {
+						if batchGrads[layer] == nil {
+							batchGrads[layer] = gradients[layer]
+						} else {
+							batchGrads[layer].Add(gradients[layer])
+						}
+					}
+				}
+
+			}(batchSamples)
+
+		}
+	}
+}
+
+// Backward returns the list of gradients for each successive layer
+func (n *NeuralNetwork) Backward(states []LayerState, lossGradient *t.Tensor) []LayerGrad {
+	gradientList := make([]LayerGrad, len(n.Layers))
+
+	actGrad := lossGradient // Gradient respect the last activation
+	for layer := len(n.Layers) - 1; layer >= 0; layer-- {
+		gradientList[layer], actGrad = n.Layers[layer].ComputeGradients(
+			states[layer],
+			actGrad,
+			n.GradientClippingLimit,
+		)
+	}
+
+	return gradientList
+}
+
+func computeLossGradient(output, expectedOutput *t.Tensor) *t.Tensor {
+	// Initial gradient for output layer is
+	// dL/da_k = 2*(a_k - y_k) for MSE loss
+	return t.ScalarMult(t.Sub(output, expectedOutput), 2)
 }

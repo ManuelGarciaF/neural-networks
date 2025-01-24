@@ -21,9 +21,20 @@ type FullyConnectedLayerGradient struct {
 	Biases  *t.Tensor
 }
 
-var _ LayerGrad = FullyConnectedLayerGradient{}
+var _ LayerGrad = &FullyConnectedLayerGradient{}
 
-func (FullyConnectedLayerGradient) layerGrad() {}
+func (g *FullyConnectedLayerGradient) Add(another LayerGrad) {
+	g2, ok := another.(*FullyConnectedLayerGradient)
+	assert.True(ok, "The gradient must be of the same type")
+
+	g.Weights.AddInPlace(g2.Weights)
+	g.Biases.AddInPlace(g2.Biases)
+}
+
+func (g *FullyConnectedLayerGradient) Scale(factor float64) {
+	g.Weights.ScaleInPlace(factor)
+	g.Biases.ScaleInPlace(factor)
+}
 
 type FullyConnectedLayerState struct {
 	Input *t.Tensor
@@ -103,7 +114,7 @@ func (l *FullyConnectedLayer) ComputeGradients(
 		delta.ScaleInPlace(gradClipping / norm)
 	}
 
-	parameterGrad := FullyConnectedLayerGradient{
+	parameterGrad := &FullyConnectedLayerGradient{
 		// Weight gradient turns out to be just delta * input^T.
 		Weights: t.MatMul(delta, t.MatTranspose(state.Input)),
 		// Similarly, the bias gradient is just delta.
@@ -121,25 +132,15 @@ func (l *FullyConnectedLayer) ComputeGradients(
 	return parameterGrad, prevLayerGrad
 }
 
-func (l *FullyConnectedLayer) UpdateParams(grads []LayerGrad, learningRate float64) {
+func (l *FullyConnectedLayer) UpdateParams(grad LayerGrad, learningRate float64) {
 	assert.GreaterThan(learningRate, 0, "Must be positive")
 
-	// Average gradients over training examples
-	wGradAvg := t.New(l.Weights.Shape...) // Empty tensors with the correct shape
-	bGradAvg := t.New(l.Biases.Shape...)
-	for _, individualGrad := range grads {
-		individualGrad, ok := individualGrad.(FullyConnectedLayerGradient)
-		assert.True(ok, "Gradient must match layer type")
+	fCGrad, ok := grad.(*FullyConnectedLayerGradient)
+	assert.True(ok, "Gradient must match layer type")
 
-		wGradAvg.AddInPlace(individualGrad.Weights)
-		bGradAvg.AddInPlace(individualGrad.Biases)
-	}
-	wGradAvg.ScaleInPlace(1.0 / float64(len(grads)))
-	bGradAvg.ScaleInPlace(1.0 / float64(len(grads)))
-
-	// Modify parameters according to gradients and learning rate
-	l.Weights.SubInPlace(t.ScalarMult(wGradAvg, learningRate))
-	l.Biases.SubInPlace(t.ScalarMult(bGradAvg, learningRate))
+	// Modify parameters according to gradient and learning rate
+	l.Weights.SubInPlace(t.ScalarMult(fCGrad.Weights, learningRate))
+	l.Biases.SubInPlace(t.ScalarMult(fCGrad.Biases, learningRate))
 }
 
 func isInf(v float64) bool {

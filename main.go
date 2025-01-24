@@ -28,7 +28,7 @@ func adder() {
 	}
 	// n := naiveTraining([]int{2, 1}, data, 0.01, 20000)
 	n := nn.NewMLP([]int{2, 1}, nn.Sigmoid{}, false, 1.0)
-	n.Train(data, 10*1000, 0.1, false)
+	n.TrainSingleThreaded(data, 10*1000, 0.1, true)
 	testNN(n, data)
 }
 
@@ -42,7 +42,7 @@ func and() {
 	}
 	// n := naiveTraining([]int{2, 1}, data, 0.01, 200000)
 	n := nn.NewMLP([]int{2, 1}, nn.Sigmoid{}, true, 1.0)
-	n.Train(data, 10*1000, 1.0, false)
+	n.TrainSingleThreaded(data, 10*1000, 1.0, true)
 
 	testNN(n, data)
 }
@@ -57,7 +57,7 @@ func xor() {
 	}
 
 	n := nn.NewMLP([]int{2, 2, 1}, nn.Sigmoid{}, true, 1.0)
-	n.Train(data, 100*1000, 1.0, false)
+	n.TrainSingleThreaded(data, 100*1000, 1.0, true)
 	testNN(n, data)
 }
 

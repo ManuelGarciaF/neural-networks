@@ -8,11 +8,6 @@ import (
 	t "github.com/ManuelGarciaF/neural-networks/tensor"
 )
 
-func init() {
-	// Disable training logs during tests
-	nn.LogProgress = false
-}
-
 func TestNetworks(te *testing.T) {
 	tests := []struct {
 		name      string
@@ -70,7 +65,7 @@ func TestNetworks(te *testing.T) {
 	for _, tt := range tests {
 		te.Run(tt.name, func(te *testing.T) {
 			network := nn.NewMLP(tt.arch, nn.Sigmoid{}, tt.outputAct, 1.0)
-			network.Train(tt.data, tt.epochs, tt.learnRate, false)
+			network.TrainSingleThreaded(tt.data, tt.epochs, tt.learnRate, false)
 
 			finalLoss := network.AverageLoss(tt.data)
 			if finalLoss > tt.threshold {
