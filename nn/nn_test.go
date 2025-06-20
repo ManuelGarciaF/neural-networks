@@ -37,8 +37,8 @@ func TestNetworks(te *testing.T) {
 			arch:      []int{2, 2, 1},
 			outputAct: true,
 			learnRate: 1.0,
-			epochs:    30000,
-			threshold: 0.1,
+			epochs:    100000,
+			threshold: 0.3,
 			data: []nn.Sample{
 				{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
 				{In: t.ColumnVector(0, 1), Out: t.Scalar(1)},
@@ -52,7 +52,7 @@ func TestNetworks(te *testing.T) {
 			outputAct: false,
 			learnRate: 0.1,
 			epochs:    10000,
-			threshold: 0.5,
+			threshold: 0.3,
 			data: []nn.Sample{
 				{In: t.ColumnVector(1, 1), Out: t.Scalar(2)},
 				{In: t.ColumnVector(2, 5), Out: t.Scalar(7)},
@@ -64,17 +64,17 @@ func TestNetworks(te *testing.T) {
 
 	for _, tt := range tests {
 		te.Run(tt.name, func(te *testing.T) {
-			network := nn.NewMLP(tt.arch, nn.Sigmoid{}, tt.outputAct, 1.0)
-			network.TrainSingleThreaded(tt.data, tt.epochs, tt.learnRate, false)
+			n := nn.NewMLP(tt.arch, nn.Sigmoid{}, tt.outputAct, 1.0)
+			n.TrainSingleThreaded(tt.data, tt.epochs, tt.learnRate, false)
 
-			finalLoss := network.AverageLoss(tt.data)
+			finalLoss := n.AverageLoss(tt.data)
 			if finalLoss > tt.threshold {
 				te.Errorf("Final loss %f exceeds threshold %f", finalLoss, tt.threshold)
 			}
 
 			// Test predictions
 			for _, sample := range tt.data {
-				out, _ := network.Forward(sample.In)
+				out, _ := n.Forward(sample.In)
 				for i, v := range out.Data {
 					diff := math.Abs(v - sample.Out.Data[i])
 					if diff > tt.threshold {

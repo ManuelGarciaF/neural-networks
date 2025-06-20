@@ -18,7 +18,7 @@ type FullyConnectedLayer struct {
 
 var _ Layer = &FullyConnectedLayer{}
 
-// FullyConnectedLayerGradient holds the gradients for the weights and biases 
+// FullyConnectedLayerGradient holds the gradients for the weights and biases
 // of a FullyConnectedLayer, used for updating parameters during backpropagation.
 type FullyConnectedLayerGradient struct {
 	Weights *t.Tensor
@@ -88,7 +88,7 @@ func (l *FullyConnectedLayer) Forward(in *t.Tensor) (*t.Tensor, LayerState) {
 		Z:     z,
 	}
 
-	return t.Apply(z, l.actF.Apply), state
+	return t.Map(z, l.actF.Apply), state
 }
 
 func (l *FullyConnectedLayer) ComputeGradients(
@@ -98,20 +98,20 @@ func (l *FullyConnectedLayer) ComputeGradients(
 ) (LayerGrad, *t.Tensor) {
 	/* The formulas for each element of the gradient are:
 
-	   dL/da^(prev)_k = Sum_j(dL/da_j * actF'(z_j) * w_jk)
-	   dL/dw_jk       =       dL/da_j * actF'(z_j) * input_k
-	   dL/db_j        =       dL/da_j * actF'(z_j)
+	   dL/da^(prev)_k = Sum_j(dL/da_j * dactF/dz_j * w_jk)
+	   dL/dw_jk       =       dL/da_j * dactF/dz_j * input_k
+	   dL/db_j        =       dL/da_j * dactF/dz_j
 
 	   We call this common factor (turned into a column vector)
 
-	   delta = dL/da_j * actF'(z_j)
+	   delta = ( dL/da_j * dactF/dz_j )
 
 	   With it we can calculate the gradients using matrix operations.
 	*/
 	state, ok := s.(FullyConnectedLayerState)
 	assert.True(ok, "State must match layer type")
 
-	actFDerivatives := t.Apply(state.Z, l.actF.Derivative)
+	actFDerivatives := t.Map(state.Z, l.actF.Derivative)
 	delta := t.ElementMult(nextLayerGrad, actFDerivatives)
 
 	// Clip delta to avoid infinite gradients.
@@ -129,11 +129,9 @@ func (l *FullyConnectedLayer) ComputeGradients(
 	// Finally, the gradient of the loss respecting the previous layer's output.
 	prevLayerGrad := t.MatMul(t.MatTranspose(l.Weights), delta)
 
-	// Check for NaN and inf
-	assert.False(parameterGrad.Weights.Any(math.IsNaN), "NaN in weight gradients")
-	assert.False(parameterGrad.Biases.Any(math.IsNaN), "NaN in bias gradients")
-	assert.False(parameterGrad.Weights.Any(isInf), "Inf in weight gradients")
-	assert.False(parameterGrad.Biases.Any(isInf), "Inf in bias gradients")
+	// Check we haven't blown up
+	assert.True(parameterGrad.Weights.IsFinite(), "Grad must be finite")
+	assert.True(parameterGrad.Biases.IsFinite(), "Grad must be finite")
 
 	return parameterGrad, prevLayerGrad
 }
@@ -147,8 +145,4 @@ func (l *FullyConnectedLayer) UpdateParams(grad LayerGrad, learningRate float64)
 	// Modify parameters according to gradient and learning rate
 	l.Weights.SubInPlace(t.ScalarMult(fCGrad.Weights, learningRate))
 	l.Biases.SubInPlace(t.ScalarMult(fCGrad.Biases, learningRate))
-}
-
-func isInf(v float64) bool {
-	return math.IsInf(v, 0)
 }

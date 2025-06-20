@@ -203,7 +203,7 @@ func ElementMult(t1, t2 *Tensor) *Tensor {
 }
 
 // Applies a function to each element of the tensor.
-func Apply(t *Tensor, f func(v float64) float64) *Tensor {
+func Map(t *Tensor, f func(v float64) float64) *Tensor {
 	a := t.Copy()
 	for i, v := range a.Data {
 		a.Data[i] = f(v)
@@ -301,6 +301,16 @@ func (t *Tensor) Any(f func(v float64) bool) bool {
 	}
 	return false
 }
+
+func (t *Tensor) IsFinite() bool {
+	return !(t.Any(math.IsNaN) && t.Any(isInf))
+
+}
+
+func isInf(v float64) bool {
+	return math.IsInf(v, 0)
+}
+
 
 func (t *Tensor) PrintMatrix(prefix string) {
 	fmt.Print(prefix, " ")

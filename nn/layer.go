@@ -8,7 +8,7 @@ type Layer interface {
 	// Forward Returns the finished activation and the layer's cached state to be used during backpropagation.
 	Forward(in *t.Tensor) (*t.Tensor, LayerState)
 
-	// ComputeGradients returns the gradients for the current and previous layers.
+	// ComputeGradients returns the weight gradient for the current layer and the activation gradient for previous layers.
 	ComputeGradients(state LayerState, nextLayerGradient *t.Tensor, gradClipping float64) (LayerGrad, *t.Tensor)
 
 	// UpdateParams updates layer parameters based on gradient.
