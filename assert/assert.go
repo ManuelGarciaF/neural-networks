@@ -4,6 +4,10 @@ package assert
 
 import "fmt"
 
+func init() {
+	fmt.Println("Asserts enabled!")
+}
+
 func True(condition bool, msg string) {
 	if !condition {
 		panic(fmt.Sprintf("Assertion failed: %v", msg))

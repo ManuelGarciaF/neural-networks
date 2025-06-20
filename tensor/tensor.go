@@ -311,14 +311,13 @@ func isInf(v float64) bool {
 	return math.IsInf(v, 0)
 }
 
-
 func (t *Tensor) PrintMatrix(prefix string) {
 	fmt.Print(prefix, " ")
 	pad := strings.Repeat(" ", len(prefix)+1)
 
 	for row := 0; row < t.Rows(); row++ {
 		// Align after prefix
-		if row > 0 { 
+		if row > 0 {
 			fmt.Print(pad)
 		}
 		// Starting marker
@@ -349,21 +348,50 @@ func (t *Tensor) PrintMatrix(prefix string) {
 }
 
 func (t *Tensor) getDataIndex(indices []int) int {
-	dataIndex := 0
-	for dim := 0; dim < t.Dims(); dim++ {
-		index := 0
-		if dim < len(indices) {
-			index = indices[dim]
+	// Unrolled loop for efficiency
+	switch t.Dims() {
+	case 0:
+		return 0
+	case 1:
+		return indices[0]
+	case 2:
+		return t.getDataIndex2D(indices)
+	default:
+		dataIndex := 0
+		for dim := 0; dim < t.Dims(); dim++ {
+			index := 0
+			if dim < len(indices) {
+				index = indices[dim]
+			}
+			assert.True(index >= 0 && index < t.Dim(dim), "Index out of bounds")
+
+			dataIndex += index * t.strides[dim]
 		}
-		assert.True(index >= 0 && index < t.Dim(dim), "Index out of bounds")
 
-		dataIndex += index * t.strides[dim]
+		// Just in case, check there are no extra non-0 indices
+		for i := t.Dims(); i < len(indices); i++ {
+			assert.Equal(0, indices[i], "Index out of bounds")
+		}
+
+		return dataIndex
+	}
+}
+
+func (t *Tensor) getDataIndex2D(indices []int) int {
+	i := indices[0]
+	if len(indices) == 1 { // Sometimes only 1 index is given, we assume the other is 0
+		return i*t.strides[0]
 	}
 
-	// Just in case, check there are no extra non-0 indices
-	for i := t.Dims(); i < len(indices); i++ {
-		assert.Equal(0, indices[i], "Index out of bounds")
-	}
+	j := indices[1]
 
-	return dataIndex
+	assert.True(i >= 0 && i < t.Shape[0], "Index out of bounds")
+	assert.True(j >= 0 && j < t.Shape[1], "Index out of bounds")
+
+	return i*t.strides[0] + j*t.strides[1]
+}
+
+func (t *Tensor) getDataIndex1D(i int) int {
+	assert.True(i >= 0 && i < t.Shape[0], "Index out of bounds")
+	return i
 }
