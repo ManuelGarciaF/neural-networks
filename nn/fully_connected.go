@@ -8,6 +8,8 @@ import (
 	t "github.com/ManuelGarciaF/neural-networks/tensor"
 )
 
+// FullyConnectedLayer represents a layer in a neural network where each
+// neuron is connected to every neuron in the previous layer.
 type FullyConnectedLayer struct {
 	Weights *t.Tensor // MxN array
 	Biases  *t.Tensor // N length vector
@@ -16,6 +18,8 @@ type FullyConnectedLayer struct {
 
 var _ Layer = &FullyConnectedLayer{}
 
+// FullyConnectedLayerGradient holds the gradients for the weights and biases 
+// of a FullyConnectedLayer, used for updating parameters during backpropagation.
 type FullyConnectedLayerGradient struct {
 	Weights *t.Tensor
 	Biases  *t.Tensor
@@ -36,6 +40,8 @@ func (g *FullyConnectedLayerGradient) Scale(factor float64) {
 	g.Biases.ScaleInPlace(factor)
 }
 
+// FullyConnectedLayerState stores the input and intermediate values
+// (Z) during the forward pass, necessary for calculating gradients later.
 type FullyConnectedLayerState struct {
 	Input *t.Tensor
 	Z     *t.Tensor // Z is the partial activation = Wx + b, stored for backpropagation.

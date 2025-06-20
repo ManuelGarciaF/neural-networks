@@ -11,7 +11,7 @@ import (
 
 func main() {
 	// Disable asserts for speed
-	// assert.ASSERT_ENABLE = false
+	// assert.EnableAssertions = false
 
 	adder()
 	and()
@@ -98,7 +98,7 @@ func naiveTraining(arch []int, outputNeedsActivation bool, data []nn.Sample, lea
 
 func testNN(n *nn.NeuralNetwork, data []nn.Sample) {
 	fmt.Println("----------------------------")
-	fmt.Println("Final loss:", n.AverageLoss(data))
+	fmt.Printf("Final loss: %7.5f\n", n.AverageLoss(data))
 
 	fmt.Println("Final weights:")
 	printNN(n)
@@ -106,10 +106,13 @@ func testNN(n *nn.NeuralNetwork, data []nn.Sample) {
 	// Check results
 	fmt.Println()
 	fmt.Println("Sample results:")
-	for _, sample := range data {
+	for i, sample := range data {
 		out, _ := n.Forward(sample.In)
-		fmt.Printf("\tin: %+v, out: %v, expected %v\n", sample.In.Data, out.Data, sample.Out.Data)
+		sample.In.PrintMatrix(fmt.Sprintf("  [%2d] In: ", i))
+		out.PrintMatrix("       Out:")
+		sample.Out.PrintMatrix("       Expected:")
 	}
+	fmt.Println()
 }
 
 func printNN(n *nn.NeuralNetwork) {

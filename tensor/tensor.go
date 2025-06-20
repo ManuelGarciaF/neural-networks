@@ -302,13 +302,16 @@ func (t *Tensor) Any(f func(v float64) bool) bool {
 	return false
 }
 
-// Really horrible, don't look
 func (t *Tensor) PrintMatrix(prefix string) {
 	fmt.Print(prefix, " ")
+	pad := strings.Repeat(" ", len(prefix)+1)
+
 	for row := 0; row < t.Rows(); row++ {
-		if row > 0 {
-			fmt.Print(strings.Repeat(" ", len(prefix)+1))
+		// Align after prefix
+		if row > 0 { 
+			fmt.Print(pad)
 		}
+		// Starting marker
 		if t.Rows() == 1 {
 			fmt.Print("[")
 		} else if row == 0 {
@@ -318,9 +321,11 @@ func (t *Tensor) PrintMatrix(prefix string) {
 		} else {
 			fmt.Print("│")
 		}
+		// Contents
 		for col := 0; col < t.Dim(1); col++ {
-			fmt.Printf("%8.4f ", t.At(row, col))
+			fmt.Printf("%7.5f ", t.At(row, col))
 		}
+		// Ending marker
 		if t.Rows() == 1 {
 			fmt.Println("]")
 		} else if row == 0 {

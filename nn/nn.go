@@ -17,6 +17,7 @@ type NeuralNetwork struct {
 
 type Sample struct{ In, Out *t.Tensor } // Both column vectors
 
+// NewMLP (Multi-Layer Perceptron) Creates a network of fully connected layers.
 // Arch is a list of layer sizes, including input and output
 func NewMLP(
 	arch []int,
@@ -64,7 +65,7 @@ func (n *NeuralNetwork) AverageLoss(samples []Sample) float64 {
 func (n *NeuralNetwork) TrainSingleThreaded(data []Sample, epochs int, learningRate float64, verbose bool) {
 	for i := 0; i < epochs; i++ {
 		n.BackpropStepSingleThreaded(data, learningRate)
-		if verbose && (epochs <= 50 || i%(epochs/50) == 0) {
+		if verbose && (epochs <= 50 || i%(epochs/20) == 0) {
 			fmt.Printf("iter:%7d - Loss: %7.5f\n", i, n.AverageLoss(data))
 		}
 	}
