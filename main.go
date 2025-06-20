@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"strconv"
 
 	"github.com/ManuelGarciaF/neural-networks/nn"
 	t "github.com/ManuelGarciaF/neural-networks/tensor"
@@ -70,13 +69,13 @@ func naiveTraining(arch []int, outputNeedsActivation bool, data []nn.Sample, lea
 	// Naive training
 	loss := n.AverageLoss(data)
 	for i := 0; i < epochs; i++ {
-		// Juggle the parameters a bit
+		// Jiggle the parameters a bit
 		n2 := nn.NewMLP(arch, nn.Sigmoid{}, outputNeedsActivation, 1.0) // New network to store updated values
 		for lnum, l := range n.Layers {
 			l, ok := l.(*nn.FullyConnectedLayer)
 			l2, _ := n2.Layers[lnum].(*nn.FullyConnectedLayer)
 			if !ok { // All layers are fullyConnected for now
-				continue
+				panic("Unreachable")
 			}
 			for i := range l.Weights.Data {
 				l2.Weights.Data[i] += (rand.Float64() - 0.5) * learningRate
@@ -121,7 +120,7 @@ func printNN(n *nn.NeuralNetwork) {
 		if !ok {
 			continue
 		}
-		l.Weights.PrintMatrix(strconv.Itoa(i) + ") Weights")
-		l.Biases.PrintMatrix(strconv.Itoa(i) + ") Bias")
+		l.Weights.PrintMatrix(fmt.Sprintf("%d) Weights", i))
+		l.Biases.PrintMatrix(fmt.Sprintf("%d) Bias", i))
 	}
 }
