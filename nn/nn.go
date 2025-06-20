@@ -62,13 +62,19 @@ func (n *NeuralNetwork) AverageLoss(samples []Sample) float64 {
 	return sum / float64(len(samples))
 }
 
-func (n *NeuralNetwork) TrainSingleThreaded(data []Sample, epochs int, learningRate float64, verbose bool) {
+func (n *NeuralNetwork) TrainSingleThreaded(data []Sample, epochs int, startingLearningRate float64, decay float64, verboseSteps int) {
+	learningRate := startingLearningRate
 	for i := 0; i < epochs; i++ {
+		// Decay the learningRate
+		learningRate *= 1.0 / (1.0 + decay*float64(i))
+
 		n.BackpropStepSingleThreaded(data, learningRate)
-		if verbose && (epochs <= 50 || i%(epochs/20) == 0) {
+
+		if verboseSteps > 0 && i%(epochs/verboseSteps) == 0 {
 			fmt.Printf("iter:%7d - Loss: %7.5f\n", i, n.AverageLoss(data))
 		}
 	}
+
 }
 
 func (n *NeuralNetwork) BackpropStepSingleThreaded(samples []Sample, learningRate float64) {

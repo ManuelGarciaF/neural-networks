@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"os"
 
 	"github.com/ManuelGarciaF/neural-networks/nn"
 	t "github.com/ManuelGarciaF/neural-networks/tensor"
@@ -12,12 +13,17 @@ func main() {
 	// Disable asserts for speed
 	// assert.EnableAssertions = false
 
-	adder()
-	and()
-	xor()
+	verboseLines := 0
+	if len(os.Args) > 1 && os.Args[1] == "-v" {
+		verboseLines = 20
+	}
+
+	adder(verboseLines)
+	and(verboseLines)
+	xor(verboseLines)
 }
 
-func adder() {
+func adder(verboseLines int) {
 	fmt.Println("Adder:")
 	data := []nn.Sample{
 		{In: t.ColumnVector(1, 1), Out: t.Scalar(2)},
@@ -27,11 +33,11 @@ func adder() {
 	}
 	// n := naiveTraining([]int{2, 1}, data, 0.01, 20000)
 	n := nn.NewMLP([]int{2, 1}, nn.Sigmoid{}, false, 1.0)
-	n.TrainSingleThreaded(data, 10*1000, 0.1, true)
+	n.TrainSingleThreaded(data, 10*1000, 1.0, 0.01, verboseLines)
 	testNN(n, data)
 }
 
-func and() {
+func and(verboseLines int) {
 	fmt.Println("AND:")
 	data := []nn.Sample{
 		{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
@@ -41,12 +47,12 @@ func and() {
 	}
 	// n := naiveTraining([]int{2, 1}, data, 0.01, 200000)
 	n := nn.NewMLP([]int{2, 1}, nn.Sigmoid{}, true, 1.0)
-	n.TrainSingleThreaded(data, 10*1000, 1.0, true)
+	n.TrainSingleThreaded(data, 10*1000, 10.0, 1e-6, verboseLines)
 
 	testNN(n, data)
 }
 
-func xor() {
+func xor(verboseLines int) {
 	fmt.Println("XOR:")
 	data := []nn.Sample{
 		{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
@@ -56,7 +62,7 @@ func xor() {
 	}
 
 	n := nn.NewMLP([]int{2, 2, 1}, nn.Sigmoid{}, true, 1.0)
-	n.TrainSingleThreaded(data, 100*1000, 1.0, true)
+	n.TrainSingleThreaded(data, 100*1000, 100.0, 1e-6, verboseLines)
 	testNN(n, data)
 }
 
