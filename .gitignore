@@ -24,3 +24,5 @@ neural-networks
 .idea/
 *.idx3-ubyte
 *.idx1-ubyte
+*.prof
+*.svg

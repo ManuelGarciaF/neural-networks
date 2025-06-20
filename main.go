@@ -10,9 +10,6 @@ import (
 )
 
 func main() {
-	// Disable asserts for speed
-	// assert.EnableAssertions = false
-
 	verboseLines := 0
 	if len(os.Args) > 1 && os.Args[1] == "-v" {
 		verboseLines = 20
@@ -47,7 +44,7 @@ func and(verboseLines int) {
 	}
 	// n := naiveTraining([]int{2, 1}, data, 0.01, 200000)
 	n := nn.NewMLP([]int{2, 1}, nn.Sigmoid{}, true, 1.0)
-	n.TrainSingleThreaded(data, 10*1000, 10.0, 1e-6, verboseLines)
+	n.TrainSingleThreaded(data, 1000, 1.0, 1e-4, verboseLines)
 
 	testNN(n, data)
 }
@@ -62,17 +59,16 @@ func xor(verboseLines int) {
 	}
 
 	n := nn.NewMLP([]int{2, 2, 1}, nn.Sigmoid{}, true, 1.0)
-	n.TrainSingleThreaded(data, 100*1000, 100.0, 1e-6, verboseLines)
+	n.TrainSingleThreaded(data, 1000, 1.0, 1e-4, verboseLines)
 	testNN(n, data)
 }
 
 func naiveTraining(arch []int, outputNeedsActivation bool, data []nn.Sample, learningRate float64, epochs int) *nn.NeuralNetwork {
 	n := nn.NewMLP(arch, nn.Sigmoid{}, outputNeedsActivation, 1.0)
 
-	fmt.Println("Initial parameters:")
-	printNN(n)
+	// fmt.Println("Initial parameters:")
+	// printNN(n)
 
-	// Naive training
 	loss := n.AverageLoss(data)
 	for i := 0; i < epochs; i++ {
 		// Jiggle the parameters a bit
@@ -80,7 +76,7 @@ func naiveTraining(arch []int, outputNeedsActivation bool, data []nn.Sample, lea
 		for lnum, l := range n.Layers {
 			l, ok := l.(*nn.FullyConnectedLayer)
 			l2, _ := n2.Layers[lnum].(*nn.FullyConnectedLayer)
-			if !ok { // All layers are fullyConnected for now
+			if !ok { // A MLP should only have fully connected layers
 				panic("Unreachable")
 			}
 			for i := range l.Weights.Data {
@@ -105,8 +101,8 @@ func testNN(n *nn.NeuralNetwork, data []nn.Sample) {
 	fmt.Println("----------------------------")
 	fmt.Printf("Final loss: %7.5f\n", n.AverageLoss(data))
 
-	fmt.Println("Final weights:")
-	printNN(n)
+	// fmt.Println("Final weights:")
+	// printNN(n)
 
 	// Check results
 	fmt.Println()

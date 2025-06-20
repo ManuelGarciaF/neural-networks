@@ -67,7 +67,7 @@ func main() {
 		10,                    // Outputs
 	}, nn.ReLU{}, true, 1.0)
 
-	model.TrainSingleThreaded(testData, 9, 0.25, true)
+	model.TrainSingleThreaded(testData, 9, 0.25, 0, 9)
 
 	fmt.Println("----------------------------")
 	fmt.Println("Final loss:", model.AverageLoss(testData))
