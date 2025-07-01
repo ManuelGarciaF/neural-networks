@@ -36,7 +36,7 @@ func main() {
 	// https://storage.googleapis.com/cvdf-datasets/mnist/t10k-labels-idx1-ubyte.gz
 
 	// Build training data
-	trainSamples := 10000
+	trainSamples := 50000
 	trainImgs := readImgs("./train-images.idx3-ubyte", trainSamples)
 	trainLabels := readLabels("./train-labels.idx1-ubyte", trainSamples)
 
@@ -64,10 +64,11 @@ func main() {
 		ImageSize * ImageSize, // Input pixels
 		256,
 		256,
-		10,                    // Outputs
-	}, nn.ReLU{}, true, 1.0)
+		10, // Outputs
+	}, nn.Sigmoid{}, nn.Sigmoid{}, 1.0)
 
-	model.TrainSingleThreaded(testData, 9, 0.25, 0, 9)
+	fmt.Println("Starting Training")
+	model.TrainConcurrent(trainData, 2000, 0.25, 0.0005, 500, 12, 10)
 
 	fmt.Println("----------------------------")
 	fmt.Println("Final loss:", model.AverageLoss(testData))
