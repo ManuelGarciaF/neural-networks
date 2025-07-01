@@ -138,7 +138,9 @@ func (n *NeuralNetwork) TrainConcurrent(
 	workSize := ceilingDiv(batchSize, workers)
 	numSubBatches := ceilingDiv(batchSize, workSize)
 
+	fmt.Println()
 	for epoch := 0; epoch < epochs; epoch++ {
+		fmt.Print("\rStarting epoch: ", epoch)
 		// Decay the learning rate.
 		learningRate := startingLearningRate / (1.0 + decay*float64(epoch))
 
@@ -172,9 +174,10 @@ func (n *NeuralNetwork) TrainConcurrent(
 		}
 
 		if verboseSteps > 0 && epoch%(epochs/verboseSteps) == 0 {
-			fmt.Printf("iter:%7d - lr:%1.4f - Batch Loss: %7.5f\n", epoch, learningRate, n.AverageLoss(batch))
+			fmt.Printf("\riter:%7d - lr:%1.4f - Batch Loss: %7.5f\n", epoch, learningRate, n.AverageLoss(batch))
 		}
 	}
+	fmt.Println()
 
 	// Wait until workers finished
 	close(workChan)

@@ -26,3 +26,4 @@ neural-networks
 *.idx1-ubyte
 *.prof
 *.svg
+/mnist/mnist

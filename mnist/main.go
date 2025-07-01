@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 
 	"github.com/ManuelGarciaF/neural-networks/assert"
@@ -68,10 +69,28 @@ func main() {
 	}, nn.Sigmoid{}, nn.Sigmoid{}, 1.0)
 
 	fmt.Println("Starting Training")
-	model.TrainConcurrent(trainData, 2000, 0.25, 0.0005, 500, 12, 10)
+	model.TrainConcurrent(trainData, 10000, 0.25, 0.001, 32, 0, 100)
 
 	fmt.Println("----------------------------")
 	fmt.Println("Final loss:", model.AverageLoss(testData))
+
+	test := randomSubset(testData, 10)
+	for _, s := range test {
+		printDigit(s.In.Data)
+		fmt.Println("Expected: ", s.Out.Data)
+		actual, _ := model.Forward(s.In)
+		highestIndex := 0
+		highestVal := float64(0)
+		for i := 0; i < 10; i++ {
+			if actual.At(i) > highestVal {
+				highestIndex = i
+				highestVal = actual.At(i)
+			}
+		}
+		fmt.Println("Actual: ", actual.Data)
+		fmt.Println("GUESS: ", highestIndex)
+	}
+
 }
 
 func printDigit(img []float64) {
@@ -127,4 +146,18 @@ func readLabels(path string, num int) []byte {
 	n := assert.Must(labelFile.Read(labels))
 	assert.Equal(n, num, "Error reading from file")
 	return labels
+}
+
+func randomSubset[T any](ts []T, n int) []T {
+	if n>len(ts) {
+		n = len(ts)
+	}
+
+	perm := rand.Perm(n)
+	subset := make([]T, n)
+
+	for i := 0; i < n; i++ {
+		subset[i] = ts[perm[i]]
+	}
+	return subset
 }

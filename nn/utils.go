@@ -11,7 +11,7 @@ func randomSubset[T any](ts []T, n int) []T {
 		n = len(ts)
 	}
 
-	perm := rand.Perm(n)
+	perm := rand.Perm(len(ts))
 	subset := make([]T, n)
 
 	for i := 0; i < n; i++ {
