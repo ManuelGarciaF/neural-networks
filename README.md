@@ -2,6 +2,7 @@
 
 Basic Neural Network framework implemented from scratch in golang. Includes a multi-dimensional tensor implementation.
 
+
 Features:
 - Arbitrary n-dimensional tensors.
 - Multiple activation functions (Sigmoid, ReLU, LeakyReLU, etc.).
@@ -38,6 +39,8 @@ go run --tags noasserts main.go
 ```
 
 The MNIST network gets good results after ~8 minutes of training on a Ryzen 5 5600 CPU. The script prints example predictions from the test data.
+
+![MNIST example output](public/screenshot.png)
 
 ## Profiling
 ``` sh
