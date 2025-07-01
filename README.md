@@ -32,7 +32,10 @@ go run main.go -v
 ```
 
 ## MNIST Example
-For digit recognition, a more sophisticated network is provided:
+For a more complicated example, there is a script provided for training a network to solve MNIST handwritten digit recognition. We use a network with the following architecture:
+![MNIST arch](public/mnist-arch.png)
+Image created with [NN SVG](https://alexlenail.me/NN-SVG/index.html)
+
 ``` sh
 cd mnist
 go run --tags noasserts main.go
