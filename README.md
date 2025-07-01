@@ -1,6 +1,43 @@
 # Neural Networks
 
-TODO
+Basic Neural Network framework implemented from scratch in golang. Includes a multi-dimensional tensor implementation.
+
+Features:
+- Arbitrary n-dimensional tensors.
+- Multiple activation functions (Sigmoid, ReLU, LeakyReLU, etc.).
+- Fully connected layers.
+- Backpropagation.
+- Concurrent/Multi-threaded training (CPU only).
+
+## Getting Started
+
+Clone the repository:
+
+``` sh
+git clone https://github.com/ManuelGarciaF/neural-networks.git
+cd neural-networks
+```
+
+Run the main demo (trains & tests Adder, AND, XOR neural nets):
+
+``` sh
+go run main.go
+```
+
+You can pass `-v` to print some network outputs during training:
+
+``` sh
+go run main.go -v
+```
+
+## MNIST Example
+For digit recognition, a more sophisticated network is provided:
+``` sh
+cd mnist
+go run --tags noasserts main.go
+```
+
+The MNIST network gets good results after ~8 minutes of training on a Ryzen 5 5600 CPU. The script prints example predictions from the test data.
 
 ## Profiling
 ``` sh
