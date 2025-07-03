@@ -10,17 +10,18 @@ import (
 )
 
 func main() {
-	verboseLines := 0
+	verbose := false
 	if len(os.Args) > 1 && os.Args[1] == "-v" {
-		verboseLines = 20
+		verbose = true
 	}
 
-	adder(verboseLines)
-	and(verboseLines)
-	xor(verboseLines)
+	adder(verbose)
+	and(verbose)
+	xor(verbose)
 }
 
-func adder(verboseLines int) {
+func adder(verbose bool) {
+	fmt.Println("--------------------------------------")
 	fmt.Println("Adder:")
 	data := []nn.Sample{
 		{In: t.ColumnVector(1, 1), Out: t.Scalar(2)},
@@ -30,11 +31,12 @@ func adder(verboseLines int) {
 	}
 	// n := naiveTraining([]int{2, 1}, data, 0.01, 20000)
 	n := nn.NewMLP([]int{2, 1}, nn.Sigmoid{}, nn.NoActF{}, 1.0)
-	n.TrainConcurrent(data, 5000, 1.0, 0.01, 0, 4, verboseLines)
+	n.TrainConcurrent(data, 2000, 1.0, 0.01, 0, 0, verbose)
 	testNN(n, data)
 }
 
-func and(verboseLines int) {
+func and(verbose bool) {
+	fmt.Println("--------------------------------------")
 	fmt.Println("AND:")
 	data := []nn.Sample{
 		{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
@@ -44,12 +46,13 @@ func and(verboseLines int) {
 	}
 	// n := naiveTraining([]int{2, 1}, data, 0.01, 200000)
 	n := nn.NewMLP([]int{2, 1}, nn.Sigmoid{}, nn.Sigmoid{}, 1.0)
-	n.TrainConcurrent(data, 5000, 0.5, 1e-4, 0, 4, verboseLines)
+	n.TrainConcurrent(data, 5000, 0.5, 1e-4, 0, 0, verbose)
 
 	testNN(n, data)
 }
 
-func xor(verboseLines int) {
+func xor(verbose bool) {
+	fmt.Println("--------------------------------------")
 	fmt.Println("XOR:")
 	data := []nn.Sample{
 		{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
@@ -59,7 +62,7 @@ func xor(verboseLines int) {
 	}
 
 	n := nn.NewMLP([]int{2, 2, 1}, nn.Sigmoid{}, nn.NoActF{}, 1.0)
-	n.TrainConcurrent(data, 5000, 0.5, 1e-4, 0, 4, verboseLines)
+	n.TrainConcurrent(data, 5000, 0.5, 1e-4, 0, 0, verbose)
 	testNN(n, data)
 }
 

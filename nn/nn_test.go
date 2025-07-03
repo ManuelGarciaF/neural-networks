@@ -15,7 +15,7 @@ func BenchmarkXor(b *testing.B) {
 	}
 
 	for b.Loop() {
-		n := NewMLP([]int{2, 2, 1}, Sigmoid{}, true, 1.0)
-		n.TrainSingleThreaded(data, 1000, 1.0, 1e-4, 0)
+		n := NewMLP([]int{2, 2, 1}, Sigmoid{}, NoActF{}, 1.0)
+		n.TrainConcurrent(data, 5000, 0.5, 1e-4, 0, 4, false)
 	}
 }

@@ -65,7 +65,7 @@ func (n *NeuralNetwork) TrainSingleThreaded(data []Sample, epochs int, startingL
 		n.BackpropStepSingleThreaded(data, learningRate)
 
 		if verboseSteps > 0 && i%(epochs/verboseSteps) == 0 {
-			fmt.Printf("iter:%7d - lr:%3d - Loss: %7.5f\n", i, learningRate, n.AverageLoss(data))
+			fmt.Printf("iter:%7d - lr:%3f - Loss: %7.5f\n", i, learningRate, n.AverageLoss(data))
 		}
 	}
 
@@ -113,7 +113,7 @@ func (n *NeuralNetwork) TrainConcurrent(
 	decay float64,
 	batchSize int,
 	workers int,
-	verboseSteps int,
+	verboseEpochs bool,
 ) {
 	if workers == 0 {
 		workers = runtime.NumCPU()
@@ -138,9 +138,12 @@ func (n *NeuralNetwork) TrainConcurrent(
 	workSize := ceilingDiv(batchSize, workers)
 	numSubBatches := ceilingDiv(batchSize, workSize)
 
-	fmt.Println()
-	for epoch := 0; epoch < epochs; epoch++ {
-		fmt.Print("\rStarting epoch: ", epoch)
+	stepsPerEpoch := ceilingDiv(len(samples), batchSize)
+	steps := epochs * stepsPerEpoch
+	for step := 0; step < steps; step++ {
+		fmt.Print("\rStarting step: ", step)
+
+		epoch := step/stepsPerEpoch
 		// Decay the learning rate.
 		learningRate := startingLearningRate / (1.0 + decay*float64(epoch))
 
@@ -173,11 +176,11 @@ func (n *NeuralNetwork) TrainConcurrent(
 			layer.UpdateParams(networkGrad[i], learningRate)
 		}
 
-		if verboseSteps > 0 && epoch%(epochs/verboseSteps) == 0 {
-			fmt.Printf("\riter:%7d - lr:%1.4f - Batch Loss: %7.5f\n", epoch, learningRate, n.AverageLoss(batch))
+		if verboseEpochs && step%stepsPerEpoch == 0 {
+			fmt.Printf("\repoch:%7d - lr:%1.4f - Batch Loss: %7.5f\n", epoch, learningRate, n.AverageLoss(batch))
 		}
 	}
-	fmt.Println()
+	fmt.Printf("\r                        \n") // Clear current step line for cleaner logs
 
 	// Wait until workers finished
 	close(workChan)

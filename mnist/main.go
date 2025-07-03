@@ -69,7 +69,7 @@ func main() {
 	}, nn.Sigmoid{}, nn.Sigmoid{}, 1.0)
 
 	fmt.Println("Starting Training")
-	model.TrainConcurrent(trainData, 10000, 0.25, 0.001, 32, 0, 100)
+	model.TrainConcurrent(trainData, 10, 0.25, 0.1, 32, 0, true)
 
 	fmt.Println("----------------------------")
 	fmt.Println("Final loss:", model.AverageLoss(testData))
@@ -153,7 +153,7 @@ func randomSubset[T any](ts []T, n int) []T {
 		n = len(ts)
 	}
 
-	perm := rand.Perm(n)
+	perm := rand.Perm(len(ts))
 	subset := make([]T, n)
 
 	for i := 0; i < n; i++ {
