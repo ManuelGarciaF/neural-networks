@@ -74,21 +74,25 @@ func main() {
 	fmt.Println("----------------------------")
 	fmt.Println("Final loss:", model.AverageLoss(testData))
 
+	// Calculate accuracy
+	correctGuesses := 0
+	for _, s := range testData {
+		forward, _ := model.Forward(s.In)
+		if maxIndex(forward.Data) == maxIndex(s.Out.Data) {
+			correctGuesses++
+		}
+	}
+	accuracy := (float64(correctGuesses) / float64(len(testData))) * 100
+	fmt.Println("Accuracy: ", accuracy, "%")
+
+	fmt.Println("Example outputs: ")
+
 	test := randomSubset(testData, 10)
 	for _, s := range test {
+		fmt.Println("Digit: ")
 		printDigit(s.In.Data)
-		fmt.Println("Expected: ", s.Out.Data)
 		actual, _ := model.Forward(s.In)
-		highestIndex := 0
-		highestVal := float64(0)
-		for i := 0; i < 10; i++ {
-			if actual.At(i) > highestVal {
-				highestIndex = i
-				highestVal = actual.At(i)
-			}
-		}
-		fmt.Println("Actual: ", actual.Data)
-		fmt.Println("GUESS: ", highestIndex)
+		fmt.Println("Expected: ", maxIndex(s.Out.Data), " - Model's guess: ", maxIndex(actual.Data))
 	}
 
 }
@@ -149,7 +153,7 @@ func readLabels(path string, num int) []byte {
 }
 
 func randomSubset[T any](ts []T, n int) []T {
-	if n>len(ts) {
+	if n > len(ts) {
 		n = len(ts)
 	}
 
@@ -160,4 +164,16 @@ func randomSubset[T any](ts []T, n int) []T {
 		subset[i] = ts[perm[i]]
 	}
 	return subset
+}
+
+func maxIndex(values []float64) int {
+	highestIndex := 0
+	highestVal := float64(0)
+	for i := 0; i < len(values); i++ {
+		if values[i] > highestVal {
+			highestIndex = i
+			highestVal = values[i]
+		}
+	}
+	return highestIndex
 }

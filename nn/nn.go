@@ -143,7 +143,7 @@ func (n *NeuralNetwork) TrainConcurrent(
 	for step := 0; step < steps; step++ {
 		fmt.Print("\rStarting step: ", step)
 
-		epoch := step/stepsPerEpoch
+		epoch := step / stepsPerEpoch
 		// Decay the learning rate.
 		learningRate := startingLearningRate / (1.0 + decay*float64(epoch))
 
