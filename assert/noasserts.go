@@ -29,11 +29,3 @@ func LessThan[T cmp.Ordered](a, b T, msg string) {
 
 func LessThanOrEqual[T cmp.Ordered](a, b T, msg string) {
 }
-
-// Must asserts that the err value is not nil
-func Must[T any](t T, err error) T {
-	if err != nil {
-		panic(err)
-	}
-	return t
-}

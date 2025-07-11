@@ -155,16 +155,16 @@ func printDigit(img []float64) {
 }
 
 func readImgs(path string, num int) [][]float64 {
-	imgFile := assert.Must(os.Open(path))
+	imgFile := must(os.Open(path))
 	defer imgFile.Close()
 	header := make([]byte, 16)
-	assert.Must(imgFile.Read(header))
+	must(imgFile.Read(header))
 
 	imgs := make([][]float64, 0, num)
 	for i := 0; i < num; i++ {
 		size := 1 * ImageSize * ImageSize
 		buf := make([]byte, size)
-		n := assert.Must(imgFile.Read(buf))
+		n := must(imgFile.Read(buf))
 		assert.Equal(n, size, "Error reading from file")
 
 		// Convert byte to float from 0 to 1
@@ -178,13 +178,13 @@ func readImgs(path string, num int) [][]float64 {
 }
 
 func readLabels(path string, num int) []byte {
-	labelFile := assert.Must(os.Open(path))
+	labelFile := must(os.Open(path))
 	defer labelFile.Close()
 	header := make([]byte, 8)
-	assert.Must(labelFile.Read(header))
+	must(labelFile.Read(header))
 
 	labels := make([]byte, num)
-	n := assert.Must(labelFile.Read(labels))
+	n := must(labelFile.Read(labels))
 	assert.Equal(n, num, "Error reading from file")
 	return labels
 }
@@ -213,4 +213,11 @@ func maxIndex(values []float64) int {
 		}
 	}
 	return highestIndex
+}
+
+func must[T any](t T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return t
 }
