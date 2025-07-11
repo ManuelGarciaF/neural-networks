@@ -2,7 +2,10 @@
 
 package assert
 
-import "fmt"
+import (
+	"cmp"
+	"fmt"
+)
 
 func init() {
 	fmt.Println("Asserts enabled!")
@@ -32,25 +35,25 @@ func NotEqual[T comparable](a, b T, msg string) {
 	}
 }
 
-func GreaterThan[T ~int | ~float64 | ~float32](a, b T, msg string) {
+func GreaterThan[T cmp.Ordered](a, b T, msg string) {
 	if a <= b {
 		panic(fmt.Sprintf("Assertion failed: %s (%v <= %v)", msg, a, b))
 	}
 }
 
-func GreaterThanOrEqual[T ~int | ~float64 | ~float32](a, b T, msg string) {
+func GreaterThanOrEqual[T cmp.Ordered](a, b T, msg string) {
 	if a < b {
 		panic(fmt.Sprintf("Assertion failed: %s (%v < %v)", msg, a, b))
 	}
 }
 
-func LessThan[T ~int | ~float64 | ~float32](a, b T, msg string) {
+func LessThan[T cmp.Ordered](a, b T, msg string) {
 	if a >= b {
 		panic(fmt.Sprintf("Assertion failed: %s (%v >= %v)", msg, a, b))
 	}
 }
 
-func LessThanOrEqual[T ~int | ~float64 | ~float32](a, b T, msg string) {
+func LessThanOrEqual[T cmp.Ordered](a, b T, msg string) {
 	if a > b {
 		panic(fmt.Sprintf("Assertion failed: %s (%v > %v)", msg, a, b))
 	}
