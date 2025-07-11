@@ -5,7 +5,7 @@ Basic Neural Network framework implemented from scratch in golang. Includes a mu
 
 Features:
 - Arbitrary n-dimensional tensors.
-- Multiple activation functions (Sigmoid, ReLU, LeakyReLU, etc.).
+- Multiple activation functions (Sigmoid, ReLU).
 - Fully connected layers.
 - Backpropagation.
 - Concurrent/Multi-threaded training (CPU only).
