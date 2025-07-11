@@ -1,6 +1,8 @@
 package nn
 
 import (
+	"encoding/binary"
+	"io"
 	"math"
 	"math/rand"
 
@@ -51,7 +53,7 @@ var _ LayerState = FullyConnectedLayerState{}
 
 func (FullyConnectedLayerState) layerState() {}
 
-func NewFullyConnectedLayer(inSize, outSize int, actF ActivationFunction) *FullyConnectedLayer {
+func NewFullyConnectedLayer(inSize, outSize int32, actF ActivationFunction) *FullyConnectedLayer {
 	l := &FullyConnectedLayer{
 		Weights: t.New(outSize, inSize),
 		Biases:  t.New(outSize, 1),
@@ -65,7 +67,7 @@ func NewFullyConnectedLayer(inSize, outSize int, actF ActivationFunction) *Fully
 }
 
 // He initialization
-func (l *FullyConnectedLayer) initializeHe(in, out int) {
+func (l *FullyConnectedLayer) initializeHe(in, out int32) {
 	dev := math.Sqrt(2 / float64(in))
 
 	for i := range l.Weights.Data {
@@ -145,4 +147,51 @@ func (l *FullyConnectedLayer) UpdateParams(grad LayerGrad, learningRate float64)
 	// Modify parameters according to gradient and learning rate
 	l.Weights.SubInPlace(t.ScalarMult(fCGrad.Weights, learningRate))
 	l.Biases.SubInPlace(t.ScalarMult(fCGrad.Biases, learningRate))
+}
+
+func (l *FullyConnectedLayer) save(w io.Writer) error {
+	// Write the name and actF
+	err := binary.Write(w, binary.LittleEndian, FULLY_CONNECTED_LAYER)
+	if err != nil {
+		return err
+	}
+	err = binary.Write(w, binary.LittleEndian, l.actF.actFType())
+	if err != nil {
+		return err
+	}
+
+	// Don't need to save any aditional metadata since the tensors' dimensions
+	// correspond to the input and output sizes.
+	err = l.Weights.Save(w)
+	if err != nil {
+		return err
+	}
+	l.Biases.Save(w)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func loadFullyConnectedLayer(r io.Reader) (*FullyConnectedLayer, error) {
+	// This load function is called after reading the type,
+	// we just need to read the actFType and then the tensors.
+	actF, err := loadActF(r)
+	if err != nil {
+		return nil, err
+	}
+	weights, err := t.Load(r)
+	if err != nil {
+		return nil, err
+	}
+	biases, err := t.Load(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return &FullyConnectedLayer{
+		Weights: weights,
+		Biases:  biases,
+		actF:    actF,
+	}, nil
 }

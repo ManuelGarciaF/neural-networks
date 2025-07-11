@@ -1,8 +1,12 @@
 package nn
 
 import (
+	"bufio"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"math"
+	"os"
 	"runtime"
 	"sync"
 
@@ -19,7 +23,7 @@ type Sample struct{ In, Out *t.Tensor } // Both column vectors
 // NewMLP (Multi-Layer Perceptron) Creates a network of fully connected layers.
 // Arch is a list of layer sizes, including input and output
 func NewMLP(
-	arch []int,
+	arch []int32,
 	actF ActivationFunction,
 	outputActF ActivationFunction,
 	gradientClippingLimit float64,
@@ -50,7 +54,7 @@ func (n *NeuralNetwork) AverageLoss(samples []Sample) float64 {
 	sum := 0.0
 	for _, s := range samples {
 		actual, _ := n.Forward(s.In)
-		for i := 0; i < actual.Rows(); i++ {
+		for i := int32(0); i < actual.Rows(); i++ {
 			sum += math.Pow(s.Out.At(i)-actual.At(i), 2)
 		}
 	}
@@ -177,7 +181,7 @@ func (n *NeuralNetwork) TrainConcurrent(
 		}
 
 		if verboseEpochs && step%stepsPerEpoch == 0 {
-			fmt.Printf("\repoch:%7d - lr:%1.4f - Batch Loss: %7.5f\n", epoch, learningRate, n.AverageLoss(batch))
+			fmt.Printf("\repoch:%3d - lr: %1.4f - Batch Loss: %7.5f\n", epoch, learningRate, n.AverageLoss(batch))
 		}
 	}
 	fmt.Printf("\r                        \n") // Clear current step line for cleaner logs
@@ -236,4 +240,83 @@ func computeLossGradient(output, expectedOutput *t.Tensor) *t.Tensor {
 	// Initial gradient for output layer is
 	// dL/da_k = 2*(a_k - y_k) for MSE loss
 	return t.ScalarMult(t.Sub(output, expectedOutput), 2)
+}
+
+func (n *NeuralNetwork) Save(w io.Writer) error {
+	// Save the clipping limit
+	err := binary.Write(w, binary.LittleEndian, n.GradientClippingLimit)
+	if err != nil {
+		return err
+	}
+
+	// We just write the number of layers and then each in succession
+	layerCount := int32(len(n.Layers))
+	err = binary.Write(w, binary.LittleEndian, layerCount)
+	if err != nil {
+		return err
+	}
+	for _, l := range n.Layers {
+		err = l.save(w)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func Load(r io.Reader) (*NeuralNetwork, error) {
+	// Read clipping limit
+	var clippingLimit float64
+	err := binary.Read(r, binary.LittleEndian, &clippingLimit)
+	if err != nil {
+		return nil, err
+	}
+	// Read number of layers
+	var layerCount int32
+	err = binary.Read(r, binary.LittleEndian, &layerCount)
+	if err != nil {
+		return nil, err
+	}
+
+	// Read that many layers
+	layers := make([]Layer, layerCount)
+	for i := int32(0); i < layerCount; i++ {
+		layers[i], err = loadLayer(r)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &NeuralNetwork{
+		Layers:                layers,
+		GradientClippingLimit: clippingLimit,
+	}, nil
+}
+
+func (n *NeuralNetwork) SaveToFile(path string) error {
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	// Buffered writer for performance
+	w := bufio.NewWriter(f)
+	err = n.Save(w)
+	w.Flush()
+	f.Sync()
+	return err
+}
+
+func LoadFromFile(path string) (*NeuralNetwork, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	// Buffered reader for performance
+	r := bufio.NewReader(f)
+	return Load(r)
 }

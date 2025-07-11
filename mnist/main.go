@@ -36,6 +36,40 @@ func main() {
 	// https://storage.googleapis.com/cvdf-datasets/mnist/t10k-images-idx3-ubyte.gz
 	// https://storage.googleapis.com/cvdf-datasets/mnist/t10k-labels-idx1-ubyte.gz
 
+	if len(os.Args) < 2 {
+		fmt.Fprintf(os.Stderr, "Usage: %s [train|run]\n", os.Args[0])
+		os.Exit(1)
+	}
+	switch os.Args[1] {
+	case "t", "train":
+		model := train()
+		err := model.SaveToFile("mnist.nn")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving model: %s\n", err.Error())
+		}
+		run(model)
+
+	case "r", "run":
+		if len(os.Args) != 3 {
+			fmt.Fprintf(os.Stderr, "Usage: %s run modelpath\n", os.Args[0])
+			os.Exit(1)
+		}
+		path := os.Args[2]
+		model, err := nn.LoadFromFile(path)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading model: %s\n", err.Error())
+			os.Exit(2)
+		}
+		run(model)
+
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", os.Args[1])
+		fmt.Fprintf(os.Stderr, "Usage: %s [train|run]\n", os.Args[0])
+		os.Exit(1)
+	}
+}
+
+func train() *nn.NeuralNetwork {
 	// Build training data
 	trainSamples := 50000
 	trainImgs := readImgs("./train-images.idx3-ubyte", trainSamples)
@@ -44,24 +78,12 @@ func main() {
 	trainData := make([]nn.Sample, trainSamples)
 	for i := range trainData {
 		trainData[i] = nn.Sample{
-			In:  t.WithData([]int{ImageSize * ImageSize}, trainImgs[i]),
+			In:  t.WithData([]int32{ImageSize * ImageSize}, trainImgs[i]),
 			Out: LabelVectors[trainLabels[i]],
 		}
 	}
 
-	testSamples := 500
-	testImgs := readImgs("./t10k-images.idx3-ubyte", testSamples)
-	testLabels := readLabels("./t10k-labels.idx1-ubyte", testSamples)
-
-	testData := make([]nn.Sample, testSamples)
-	for i := range testData {
-		testData[i] = nn.Sample{
-			In:  t.WithData([]int{ImageSize * ImageSize}, testImgs[i]),
-			Out: LabelVectors[testLabels[i]],
-		}
-	}
-
-	model := nn.NewMLP([]int{
+	model := nn.NewMLP([]int32{
 		ImageSize * ImageSize, // Input pixels
 		256,
 		256,
@@ -70,6 +92,22 @@ func main() {
 
 	fmt.Println("Starting Training")
 	model.TrainConcurrent(trainData, 10, 0.25, 0.1, 32, 0, true)
+
+	return model
+}
+
+func run(model *nn.NeuralNetwork) {
+	testSamples := 500
+	testImgs := readImgs("./t10k-images.idx3-ubyte", testSamples)
+	testLabels := readLabels("./t10k-labels.idx1-ubyte", testSamples)
+
+	testData := make([]nn.Sample, testSamples)
+	for i := range testData {
+		testData[i] = nn.Sample{
+			In:  t.WithData([]int32{ImageSize * ImageSize}, testImgs[i]),
+			Out: LabelVectors[testLabels[i]],
+		}
+	}
 
 	fmt.Println("----------------------------")
 	fmt.Println("Final loss:", model.AverageLoss(testData))
@@ -87,14 +125,13 @@ func main() {
 
 	fmt.Println("Example outputs: ")
 
-	test := randomSubset(testData, 10)
+	test := randomSubset(testData, 4)
 	for _, s := range test {
 		fmt.Println("Digit: ")
 		printDigit(s.In.Data)
 		actual, _ := model.Forward(s.In)
 		fmt.Println("Expected: ", maxIndex(s.Out.Data), " - Model's guess: ", maxIndex(actual.Data))
 	}
-
 }
 
 func printDigit(img []float64) {

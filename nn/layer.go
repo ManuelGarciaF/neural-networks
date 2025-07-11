@@ -1,6 +1,11 @@
 package nn
 
 import (
+	"encoding/binary"
+	"errors"
+	"fmt"
+	"io"
+
 	t "github.com/ManuelGarciaF/neural-networks/tensor"
 )
 
@@ -13,6 +18,9 @@ type Layer interface {
 
 	// UpdateParams updates layer parameters based on gradient.
 	UpdateParams(grads LayerGrad, learningRate float64)
+
+	// Serialization methods
+	save(w io.Writer) error // Writes the current layer (including name and constructor params)
 }
 
 // LayerGrad stores the gradient for a layer with respect to its parameters.
@@ -24,4 +32,27 @@ type LayerGrad interface {
 // LayerState stores the cached values from forwarding to be reused for backpropagation
 type LayerState interface {
 	layerState() // Marker method
+}
+
+type layerType byte
+
+const (
+	FULLY_CONNECTED_LAYER layerType = iota
+)
+
+func loadLayer(r io.Reader) (Layer, error) {
+	// Read type of layer
+	var t layerType
+	err := binary.Read(r, binary.LittleEndian, &t)
+	if err != nil {
+		return nil, err
+	}
+
+	// Call layer specific load function
+	switch layerType(t) {
+	case FULLY_CONNECTED_LAYER:
+		return loadFullyConnectedLayer(r)
+	default:
+		return nil, errors.New(fmt.Sprint("Invalid layer type found: ", t))
+	}
 }

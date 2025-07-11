@@ -45,7 +45,7 @@ func TestFullyConnectedLayer_Forward(t *testing.T) {
 		{
 			name: "2x2 forward",
 			fields: fields{
-				weights: ts.WithData([]int{2, 2}, []float64{1, 2, 3, 4}),
+				weights: ts.WithData([]int32{2, 2}, []float64{1, 2, 3, 4}),
 				bias:    ts.ColumnVector(0.5, 0.2),
 			},
 			args: args{

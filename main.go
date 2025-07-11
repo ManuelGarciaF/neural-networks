@@ -30,7 +30,7 @@ func adder(verbose bool) {
 		{In: t.ColumnVector(-1, 1), Out: t.Scalar(0)},
 	}
 	// n := naiveTraining([]int{2, 1}, data, 0.01, 20000)
-	n := nn.NewMLP([]int{2, 1}, nn.Sigmoid{}, nn.NoActF{}, 1.0)
+	n := nn.NewMLP([]int32{2, 1}, nn.Sigmoid{}, nn.NoActF{}, 1.0)
 	n.TrainConcurrent(data, 2000, 1.0, 0.01, 0, 0, verbose)
 	testNN(n, data)
 }
@@ -45,7 +45,7 @@ func and(verbose bool) {
 		{In: t.ColumnVector(1, 1), Out: t.Scalar(1)},
 	}
 	// n := naiveTraining([]int{2, 1}, data, 0.01, 200000)
-	n := nn.NewMLP([]int{2, 1}, nn.Sigmoid{}, nn.Sigmoid{}, 1.0)
+	n := nn.NewMLP([]int32{2, 1}, nn.Sigmoid{}, nn.Sigmoid{}, 1.0)
 	n.TrainConcurrent(data, 5000, 0.5, 1e-4, 0, 0, verbose)
 
 	testNN(n, data)
@@ -61,12 +61,12 @@ func xor(verbose bool) {
 		{In: t.ColumnVector(1, 1), Out: t.Scalar(0)},
 	}
 
-	n := nn.NewMLP([]int{2, 2, 1}, nn.Sigmoid{}, nn.NoActF{}, 1.0)
+	n := nn.NewMLP([]int32{2, 2, 1}, nn.Sigmoid{}, nn.NoActF{}, 1.0)
 	n.TrainConcurrent(data, 5000, 0.5, 1e-4, 0, 0, verbose)
 	testNN(n, data)
 }
 
-func naiveTraining(arch []int, data []nn.Sample, learningRate float64, epochs int) *nn.NeuralNetwork {
+func naiveTraining(arch []int32, data []nn.Sample, learningRate float64, epochs int) *nn.NeuralNetwork {
 	n := nn.NewMLP(arch, nn.Sigmoid{}, nn.NoActF{}, 1.0)
 
 	loss := n.AverageLoss(data)
@@ -80,10 +80,10 @@ func naiveTraining(arch []int, data []nn.Sample, learningRate float64, epochs in
 				panic("Unreachable")
 			}
 			for i, w0 := range l.Weights.Data {
-				l2.Weights.Data[i] = w0 + (rand.Float64() - 0.5) * learningRate
+				l2.Weights.Data[i] = w0 + (rand.Float64()-0.5)*learningRate
 			}
 			for i, b0 := range l.Biases.Data {
-				l2.Biases.Data[i] = b0 + (rand.Float64() - 0.5) * learningRate
+				l2.Biases.Data[i] = b0 + (rand.Float64()-0.5)*learningRate
 			}
 		}
 		newLoss := n2.AverageLoss(data)

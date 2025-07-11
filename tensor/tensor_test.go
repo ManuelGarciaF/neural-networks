@@ -8,14 +8,14 @@ import (
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name     string
-		shape    []int
+		shape    []int32
 		wantDim  int
 		wantSize int
 	}{
-		{"Scalar", []int{}, 0, 1},
-		{"Vector", []int{3}, 1, 3},
-		{"Matrix", []int{2, 3}, 2, 6},
-		{"3D Tensor", []int{2, 3, 4}, 3, 24},
+		{"Scalar", []int32{}, 0, 1},
+		{"Vector", []int32{3}, 1, 3},
+		{"Matrix", []int32{2, 3}, 2, 6},
+		{"3D Tensor", []int32{2, 3, 4}, 3, 24},
 	}
 
 	for _, tt := range tests {
@@ -37,14 +37,14 @@ func TestNew(t *testing.T) {
 func TestSetAndAt(t *testing.T) {
 	tests := []struct {
 		name    string
-		shape   []int
-		indices []int
+		shape   []int32
+		indices []int32
 		value   float64
 	}{
-		{"Scalar", []int{}, []int{}, 42},
-		{"Vector", []int{3}, []int{1}, 42},
-		{"Matrix", []int{2, 3}, []int{1, 2}, 42},
-		{"3D Tensor", []int{2, 3, 4}, []int{1, 2, 3}, 42},
+		{"Scalar", []int32{}, []int32{}, 42},
+		{"Vector", []int32{3}, []int32{1}, 42},
+		{"Matrix", []int32{2, 3}, []int32{1, 2}, 42},
+		{"3D Tensor", []int32{2, 3, 4}, []int32{1, 2, 3}, 42},
 	}
 
 	for _, tt := range tests {
@@ -63,10 +63,10 @@ func TestSetAndAtPanic(t *testing.T) {
 
 	testCases := []struct {
 		name    string
-		indices []int
+		indices []int32
 	}{
-		{"Too Many Indices", []int{1, 2, 3}},
-		{"Out of Bounds", []int{2, 3}},
+		{"Too Many Indices", []int32{1, 2, 3}},
+		{"Out of Bounds", []int32{2, 3}},
 	}
 
 	for _, tc := range testCases {
@@ -99,15 +99,15 @@ func TestMatMul(t *testing.T) {
 	}{
 		{
 			name:  "2x3 * 3x2",
-			left:  WithData([]int{2, 3}, []float64{1, 2, 3, 4, 5, 6}),
-			right: WithData([]int{3, 2}, []float64{7, 8, 9, 10, 11, 12}),
-			want:  WithData([]int{2, 2}, []float64{58, 64, 139, 154}),
+			left:  WithData([]int32{2, 3}, []float64{1, 2, 3, 4, 5, 6}),
+			right: WithData([]int32{3, 2}, []float64{7, 8, 9, 10, 11, 12}),
+			want:  WithData([]int32{2, 2}, []float64{58, 64, 139, 154}),
 		},
 		{
 			name:  "3x2 * 2x3",
-			left:  WithData([]int{3, 2}, []float64{1, 2, 3, 4, 5, 6}),
-			right: WithData([]int{2, 3}, []float64{7, 8, 9, 10, 11, 12}),
-			want:  WithData([]int{3, 3}, []float64{27, 30, 33, 61, 68, 75, 95, 106, 117}),
+			left:  WithData([]int32{3, 2}, []float64{1, 2, 3, 4, 5, 6}),
+			right: WithData([]int32{2, 3}, []float64{7, 8, 9, 10, 11, 12}),
+			want:  WithData([]int32{3, 3}, []float64{27, 30, 33, 61, 68, 75, 95, 106, 117}),
 		},
 		{
 			name:  "1x2 * 2x1",
@@ -173,7 +173,7 @@ func TestEq(t *testing.T) {
 		{
 			name: "scalar == 1x1 matrix",
 			t1:   Scalar(1),
-			t2:   WithData([]int{1, 1}, []float64{1}),
+			t2:   WithData([]int32{1, 1}, []float64{1}),
 			want: true,
 		},
 		{
@@ -184,8 +184,8 @@ func TestEq(t *testing.T) {
 		},
 		{
 			name: "2x2 matrixes",
-			t1:   WithData([]int{2,2}, []float64{1,2,3,4}),
-			t2:   WithData([]int{2,2}, []float64{1,2,3,4}),
+			t1:   WithData([]int32{2,2}, []float64{1,2,3,4}),
+			t2:   WithData([]int32{2,2}, []float64{1,2,3,4}),
 			want: true,
 		},
 	}

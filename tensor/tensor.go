@@ -1,7 +1,9 @@
 package tensor
 
 import (
+	"encoding/binary"
 	"fmt"
+	"io"
 	"math"
 	"slices"
 	"strings"
@@ -11,27 +13,27 @@ import (
 
 type Tensor struct {
 	Data    []float64
-	Shape   []int
-	strides []int
+	Shape   []int32
+	strides []int32
 }
 
-func New(shape ...int) *Tensor {
+func New(shape ...int32) *Tensor {
 	if len(shape) == 0 {
 		return &Tensor{
 			Data:    make([]float64, 1),
-			Shape:   make([]int, 0),
-			strides: []int{1},
+			Shape:   make([]int32, 0),
+			strides: []int32{1},
 		}
 	}
 
 	// Total size is product of all sizes
-	size := 1
+	size := int32(1)
 	for _, dim := range shape {
 		size *= dim
 	}
 
 	// Strides are built up from the end
-	strides := make([]int, len(shape))
+	strides := make([]int32, len(shape))
 	strides[len(shape)-1] = 1
 	// Stride grows by the size of that dimension.
 	for i := len(shape) - 2; i >= 0; i-- {
@@ -45,7 +47,7 @@ func New(shape ...int) *Tensor {
 	}
 }
 
-func WithData(shape []int, data []float64) *Tensor {
+func WithData(shape []int32, data []float64) *Tensor {
 	t := New(shape...)
 	assert.Equal(len(t.Data), len(data), "The provided data does not match the required length")
 	copy(t.Data, data)
@@ -60,19 +62,21 @@ func Scalar(v float64) *Tensor {
 
 func RowVector(data ...float64) *Tensor {
 	assert.GreaterThan(len(data), 0, "A vector can't have size 0")
-	return WithData([]int{1, len(data)}, data)
+	size := int32(len(data))
+	return WithData([]int32{1, size}, data)
 }
 
 func ColumnVector(data ...float64) *Tensor {
 	assert.GreaterThan(len(data), 0, "A vector can't have size 0")
-	return WithData([]int{len(data), 1}, data)
+	size := int32(len(data))
+	return WithData([]int32{size, 1}, data)
 }
 
 func (t *Tensor) Dims() int {
 	return len(t.Shape)
 }
 
-func (t *Tensor) Dim(i int) int {
+func (t *Tensor) Dim(i int) int32 {
 	assert.GreaterThanOrEqual(i, 0, "Invalid dimension index")
 
 	if i >= t.Dims() {
@@ -81,28 +85,28 @@ func (t *Tensor) Dim(i int) int {
 	return t.Shape[i]
 }
 
-func (t *Tensor) Set(v float64, indices ...int) {
+func (t *Tensor) Set(v float64, indices ...int32) {
 	t.Data[t.getDataIndex(indices)] = v
 }
 
-func (t *Tensor) At(indices ...int) float64 {
+func (t *Tensor) At(indices ...int32) float64 {
 	return t.Data[t.getDataIndex(indices)]
 }
 
-func (t *Tensor) Rows() int {
+func (t *Tensor) Rows() int32 {
 	return t.Dim(0)
 }
 
-func (t *Tensor) Cols() int {
+func (t *Tensor) Cols() int32 {
 	return t.Dim(1)
 }
 
 func (t *Tensor) Copy() *Tensor {
 	data := make([]float64, len(t.Data))
 	copy(data, t.Data)
-	shape := make([]int, len(t.Shape))
+	shape := make([]int32, len(t.Shape))
 	copy(shape, t.Shape)
-	strides := make([]int, len(t.strides))
+	strides := make([]int32, len(t.strides))
 	copy(strides, t.strides)
 
 	return &Tensor{Data: data, Shape: shape, strides: strides}
@@ -134,10 +138,10 @@ func MatMul(left, right *Tensor) *Tensor {
 	sumLen := left.Cols()
 
 	out := New(outRows, outCols)
-	for row := 0; row < outRows; row++ {
-		for col := 0; col < outCols; col++ {
+	for row := int32(0); row < outRows; row++ {
+		for col := int32(0); col < outCols; col++ {
 			val := 0.0
-			for i := 0; i < sumLen; i++ {
+			for i := int32(0); i < sumLen; i++ {
 				val += left.At(row, i) * right.At(i, col)
 			}
 			out.Set(val, row, col)
@@ -258,8 +262,8 @@ func MatTranspose(t *Tensor) *Tensor {
 	assert.LessThanOrEqual(t.Dims(), 2, "Element is not a matrix")
 
 	new := New(t.Cols(), t.Rows())
-	for r := 0; r < t.Rows(); r++ {
-		for c := 0; c < t.Cols(); c++ {
+	for r := int32(0); r < t.Rows(); r++ {
+		for c := int32(0); c < t.Cols(); c++ {
 			new.Set(t.At(r, c), c, r)
 		}
 	}
@@ -272,9 +276,9 @@ func (t *Tensor) MatrixNormInf() float64 {
 
 	// Max row sum
 	max := 0.0
-	for r := 0; r < t.Rows(); r++ {
+	for r := int32(0); r < t.Rows(); r++ {
 		sum := 0.0
-		for c := 0; c < t.Cols(); c++ {
+		for c := int32(0); c < t.Cols(); c++ {
 			sum += math.Abs(t.At(r, c))
 		}
 		if sum > max {
@@ -307,6 +311,62 @@ func (t *Tensor) IsFinite() bool {
 
 }
 
+// Serialization functions
+func (t *Tensor) Save(w io.Writer) error {
+	// We just need to save the data and shapes, strides is computed on creation.
+
+	// Shape
+	dims := int32(len(t.Shape)) // Cast to keep standard sizes
+	err := binary.Write(w, binary.LittleEndian, dims)
+	if err != nil {
+		return err
+	}
+	err = binary.Write(w, binary.LittleEndian, t.Shape)
+	if err != nil {
+		return err
+	}
+
+	// Data
+	size := int32(len(t.Data))
+	err = binary.Write(w, binary.LittleEndian, size)
+	if err != nil {
+		return err
+	}
+	err = binary.Write(w, binary.LittleEndian, t.Data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Load(r io.Reader) (*Tensor, error) {
+	// Read dims
+	var dims int32
+	err := binary.Read(r, binary.LittleEndian, &dims)
+	if err != nil {
+		return nil, err
+	}
+	shape := make([]int32, dims)
+	err = binary.Read(r, binary.LittleEndian, shape)
+	if err != nil {
+		return nil, err
+	}
+
+	var dataSize int32
+	err = binary.Read(r, binary.LittleEndian, &dataSize)
+	if err != nil {
+		return nil, err
+	}
+	data := make([]float64, dataSize)
+	err = binary.Read(r, binary.LittleEndian, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return WithData(shape, data), nil
+}
+
 func isInf(v float64) bool {
 	return math.IsInf(v, 0)
 }
@@ -315,7 +375,7 @@ func (t *Tensor) PrintMatrix(prefix string) {
 	fmt.Print(prefix, " ")
 	pad := strings.Repeat(" ", len(prefix)+1)
 
-	for row := 0; row < t.Rows(); row++ {
+	for row := int32(0); row < t.Rows(); row++ {
 		// Align after prefix
 		if row > 0 {
 			fmt.Print(pad)
@@ -331,7 +391,7 @@ func (t *Tensor) PrintMatrix(prefix string) {
 			fmt.Print("│")
 		}
 		// Contents
-		for col := 0; col < t.Dim(1); col++ {
+		for col := int32(0); col < t.Dim(1); col++ {
 			fmt.Printf("%7.5f ", t.At(row, col))
 		}
 		// Ending marker
@@ -347,19 +407,21 @@ func (t *Tensor) PrintMatrix(prefix string) {
 	}
 }
 
-func (t *Tensor) getDataIndex(indices []int) int {
+func (t *Tensor) getDataIndex(indices []int32) int32 {
 	// Unrolled loop for efficiency
 	switch t.Dims() {
 	case 0:
 		return 0
 	case 1:
-		return indices[0]
+		i := indices[0]
+		assert.True(i >= 0 && i < t.Shape[0], "Index out of bounds")
+		return i
 	case 2:
 		return t.getDataIndex2D(indices)
-	default:
-		dataIndex := 0
+	default: // For more complex tensors, compute using a loop
+		dataIndex := int32(0)
 		for dim := 0; dim < t.Dims(); dim++ {
-			index := 0
+			index := int32(0)
 			if dim < len(indices) {
 				index = indices[dim]
 			}
@@ -377,21 +439,22 @@ func (t *Tensor) getDataIndex(indices []int) int {
 	}
 }
 
-func (t *Tensor) getDataIndex2D(indices []int) int {
+func (t *Tensor) getDataIndex2D(indices []int32) int32 {
 	i := indices[0]
-	if len(indices) == 1 { // Sometimes only 1 index is given, we assume the other is 0
-		return i*t.strides[0]
+	assert.True(i >= 0 && i < t.Shape[0], "Index out of bounds")
+
+	// Sometimes only 1 index is given, we assume the other is 0
+	if len(indices) == 1 {
+		return i * t.strides[0]
 	}
 
 	j := indices[1]
-
-	assert.True(i >= 0 && i < t.Shape[0], "Index out of bounds")
 	assert.True(j >= 0 && j < t.Shape[1], "Index out of bounds")
 
 	return i*t.strides[0] + j*t.strides[1]
 }
 
-func (t *Tensor) getDataIndex1D(i int) int {
+func (t *Tensor) getDataIndex1D(i int32) int32 {
 	assert.True(i >= 0 && i < t.Shape[0], "Index out of bounds")
 	return i
 }
