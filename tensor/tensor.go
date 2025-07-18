@@ -115,7 +115,7 @@ func (t *Tensor) Copy() *Tensor {
 func EqDims(t1, t2 *Tensor) bool {
 	maxDims := max(t1.Dims(), t2.Dims())
 
-	for i := 0; i < maxDims; i++ {
+	for i := range maxDims {
 		if t1.Dim(i) != t2.Dim(i) {
 			return false
 		}
@@ -138,10 +138,10 @@ func MatMul(left, right *Tensor) *Tensor {
 	sumLen := left.Cols()
 
 	out := New(outRows, outCols)
-	for row := int32(0); row < outRows; row++ {
-		for col := int32(0); col < outCols; col++ {
+	for row := range outRows {
+		for col := range outCols {
 			val := 0.0
-			for i := int32(0); i < sumLen; i++ {
+			for i := range sumLen {
 				val += left.At(row, i) * right.At(i, col)
 			}
 			out.Set(val, row, col)
@@ -289,21 +289,11 @@ func (t *Tensor) MatrixNormInf() float64 {
 }
 
 func (t *Tensor) Contains(v float64) bool {
-	for _, e := range t.Data {
-		if e == v {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(t.Data, v)
 }
 
 func (t *Tensor) Any(f func(v float64) bool) bool {
-	for _, v := range t.Data {
-		if f(v) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(t.Data, f)
 }
 
 func (t *Tensor) IsFinite() bool {
@@ -413,9 +403,7 @@ func (t *Tensor) getDataIndex(indices []int32) int32 {
 	case 0:
 		return 0
 	case 1:
-		i := indices[0]
-		assert.True(i >= 0 && i < t.Shape[0], "Index out of bounds")
-		return i
+		return t.getDataIndex1D(indices)
 	case 2:
 		return t.getDataIndex2D(indices)
 	default: // For more complex tensors, compute using a loop
@@ -454,7 +442,8 @@ func (t *Tensor) getDataIndex2D(indices []int32) int32 {
 	return i*t.strides[0] + j*t.strides[1]
 }
 
-func (t *Tensor) getDataIndex1D(i int32) int32 {
+func (t *Tensor) getDataIndex1D(indices []int32) int32 {
+	i := indices[0]
 	assert.True(i >= 0 && i < t.Shape[0], "Index out of bounds")
 	return i
 }

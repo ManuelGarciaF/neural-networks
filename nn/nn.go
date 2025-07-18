@@ -62,7 +62,7 @@ func (n *NeuralNetwork) AverageLoss(samples []Sample) float64 {
 }
 
 func (n *NeuralNetwork) TrainSingleThreaded(data []Sample, epochs int, startingLearningRate float64, decay float64, verboseSteps int) {
-	for i := 0; i < epochs; i++ {
+	for i := range epochs {
 		// Decay the learningRate
 		learningRate := startingLearningRate / (1.0 + decay*float64(i))
 
@@ -144,7 +144,7 @@ func (n *NeuralNetwork) TrainConcurrent(
 
 	stepsPerEpoch := ceilingDiv(len(samples), batchSize)
 	steps := epochs * stepsPerEpoch
-	for step := 0; step < steps; step++ {
+	for step := range steps {
 		fmt.Print("\rStarting step: ", step)
 
 		epoch := step / stepsPerEpoch
@@ -161,7 +161,7 @@ func (n *NeuralNetwork) TrainConcurrent(
 
 		// Collect results
 		networkGrad := make([]LayerGrad, len(n.Layers)) // Network grad for accumulating results.
-		for i := 0; i < numSubBatches; i++ {
+		for range numSubBatches {
 			subBatchNetworkGrad := <-gradChan
 			for layer := range subBatchNetworkGrad { // Add layer by layer
 				if networkGrad[layer] == nil {

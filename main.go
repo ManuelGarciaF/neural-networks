@@ -29,7 +29,7 @@ func adder(verbose bool) {
 		{In: t.ColumnVector(0, 0), Out: t.Scalar(0)},
 		{In: t.ColumnVector(-1, 1), Out: t.Scalar(0)},
 	}
-	// n := naiveTraining([]int{2, 1}, data, 0.01, 20000)
+	// n := NaiveTraining([]int{2, 1}, data, 0.01, 20000)
 	n := nn.NewMLP([]int32{2, 1}, nn.Sigmoid{}, nn.NoActF{}, 1.0)
 	n.TrainConcurrent(data, 2000, 1.0, 0.01, 0, 0, verbose)
 	testNN(n, data)
@@ -44,7 +44,7 @@ func and(verbose bool) {
 		{In: t.ColumnVector(1, 0), Out: t.Scalar(0)},
 		{In: t.ColumnVector(1, 1), Out: t.Scalar(1)},
 	}
-	// n := naiveTraining([]int{2, 1}, data, 0.01, 200000)
+	// n := NaiveTraining([]int{2, 1}, data, 0.01, 200000)
 	n := nn.NewMLP([]int32{2, 1}, nn.Sigmoid{}, nn.Sigmoid{}, 1.0)
 	n.TrainConcurrent(data, 5000, 0.5, 1e-4, 0, 0, verbose)
 
@@ -66,11 +66,11 @@ func xor(verbose bool) {
 	testNN(n, data)
 }
 
-func naiveTraining(arch []int32, data []nn.Sample, learningRate float64, epochs int) *nn.NeuralNetwork {
+func NaiveTraining(arch []int32, data []nn.Sample, learningRate float64, epochs int) *nn.NeuralNetwork {
 	n := nn.NewMLP(arch, nn.Sigmoid{}, nn.NoActF{}, 1.0)
 
 	loss := n.AverageLoss(data)
-	for i := 0; i < epochs; i++ {
+	for i := range epochs {
 		// Jiggle the parameters a bit
 		n2 := nn.NewMLP(arch, nn.Sigmoid{}, nn.NoActF{}, 1.0) // New network to store updated values
 		for lnum, l := range n.Layers {
@@ -102,7 +102,7 @@ func testNN(n *nn.NeuralNetwork, data []nn.Sample) {
 	fmt.Printf("Final loss: %1.12f\n", n.AverageLoss(data))
 
 	// fmt.Println("Final weights:")
-	// printNN(n)
+	// PrintNN(n)
 
 	// Check results
 	fmt.Println()
@@ -116,7 +116,7 @@ func testNN(n *nn.NeuralNetwork, data []nn.Sample) {
 	fmt.Println()
 }
 
-func printNN(n *nn.NeuralNetwork) {
+func PrintNN(n *nn.NeuralNetwork) {
 	for i, l := range n.Layers {
 		l, ok := l.(*nn.FullyConnectedLayer)
 		if !ok {

@@ -135,7 +135,7 @@ func run(model *nn.NeuralNetwork) {
 }
 
 func printDigit(img []float64) {
-	for i := 0; i < ImageSize*ImageSize; i++ {
+	for i := range ImageSize*ImageSize {
 		b := img[i]
 		if b > 0.85 {
 			fmt.Print("#")
@@ -161,7 +161,7 @@ func readImgs(path string, num int) [][]float64 {
 	must(imgFile.Read(header))
 
 	imgs := make([][]float64, 0, num)
-	for i := 0; i < num; i++ {
+	for range num {
 		size := 1 * ImageSize * ImageSize
 		buf := make([]byte, size)
 		n := must(imgFile.Read(buf))
@@ -206,7 +206,7 @@ func randomSubset[T any](ts []T, n int) []T {
 func maxIndex(values []float64) int {
 	highestIndex := 0
 	highestVal := float64(0)
-	for i := 0; i < len(values); i++ {
+	for i := range values {
 		if values[i] > highestVal {
 			highestIndex = i
 			highestVal = values[i]
